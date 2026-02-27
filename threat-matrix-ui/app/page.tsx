@@ -61,21 +61,30 @@ export default function Dashboard() {
     setCheckedIds([]);
     setSearchTerm("");
     setActorSearch("");
+    setSectorFilter("All Sectors");
   };
 
   const filteredActors = exposedActors.filter((actor) => {
+    // 1. Text Search Logic
     const searchLower = actorSearch.toLowerCase();
-    
-    // Check main name and MITRE ID
     const matchesName = actor.name.toLowerCase().includes(searchLower);
     const matchesId = actor.mitre_id.toLowerCase().includes(searchLower);
-    
-    // Check if the search term exists inside any of the aliases
     const matchesAlias = actor.aliases 
       ? actor.aliases.some((alias: string) => alias.toLowerCase().includes(searchLower))
       : false;
+    const matchesSearch = matchesName || matchesId || matchesAlias;
 
-    return matchesName || matchesId || matchesAlias;
+    // 2. Industry Sector Logic
+    let matchesSector = true;
+    if (sectorFilter !== "All Sectors") {
+      const selectedSector = SECTORS.find(s => s.label === sectorFilter);
+      if (selectedSector && selectedSector.keywords.length > 0) {
+        const descLower = (actor.description || "").toLowerCase();
+        matchesSector = selectedSector.keywords.some(kw => descLower.includes(kw));
+      }
+    }
+
+    return matchesSearch && matchesSector;
   });
 
   const filteredMitigations = mitigations
@@ -98,7 +107,7 @@ export default function Dashboard() {
     });
 
   // Check if anything is currently active
-  const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "";
+  const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "" || sectorFilter !== "All Sectors";
 
   return (
     <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30 relative">
