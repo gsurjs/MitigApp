@@ -15,15 +15,16 @@ export default function Dashboard() {
   const [exposedActors, setExposedActors] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/mitigations")
+    fetch(`${API_BASE_URL}/api/mitigations`)
       .then((res) => res.json())
       .then((data) => setMitigations(data));
   }, []);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/analyze", {
+    fetch(`${API_BASE_URL}/api/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mitigated_ids: checkedIds }),
