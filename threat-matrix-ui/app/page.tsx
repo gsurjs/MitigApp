@@ -44,6 +44,13 @@ export default function Dashboard() {
     );
   };
 
+  // Reset function
+  const handleReset = () => {
+    setCheckedIds([]);
+    setSearchTerm("");
+    setActorSearch("");
+  };
+
   const filteredActors = exposedActors.filter((actor) => {
     const searchLower = actorSearch.toLowerCase();
     
@@ -78,6 +85,9 @@ export default function Dashboard() {
       return a.mitre_id.localeCompare(b.mitre_id);
     });
 
+  // Check if anything is currently active
+  const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "";
+
   return (
     <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30 relative">
       
@@ -92,12 +102,28 @@ export default function Dashboard() {
       {/* LEFT PANEL: Defensive Posture Controls */}
       <div className={`fixed inset-y-0 left-0 z-50 w-4/5 max-w-sm flex flex-col border-r border-slate-800 bg-slate-900 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-1/3 ${isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}>
         
-        {/* Left Header & Subtitle */}
         <div className="p-6 border-b border-slate-800 relative">
-          <h2 className="text-xl font-bold text-blue-400 mb-1 tracking-tight flex items-center gap-2">
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-            Defensive Posture
-          </h2>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-blue-400 mb-1 tracking-tight flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Defensive Posture
+              </h2>
+              <p className="text-sm text-slate-400 mb-4 pl-7 pr-8 md:pr-0">Select active mitigations to assess risk exposure.</p>
+            </div>
+            
+            {/* NEW: Dynamic Clear Board Button */}
+            {isBoardActive && (
+              <button 
+                onClick={handleReset}
+                className="hidden md:flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-rose-400 transition-colors bg-slate-800/50 hover:bg-slate-800 px-2.5 py-1.5 rounded-md border border-slate-700 hover:border-rose-900/50"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Clear
+              </button>
+            )}
+          </div>
+          
           <button className="md:hidden absolute top-6 right-4 text-slate-400 hover:text-white p-1" onClick={() => setIsMobileMenuOpen(false)}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
@@ -138,22 +164,24 @@ export default function Dashboard() {
         {/* Dynamic Risk Header */}
         <div className={`p-4 md:p-6 border-b flex flex-col sm:flex-row sm:justify-between sm:items-start transition-colors duration-500 gap-4 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
           <div className="flex-1">
-            <div className="flex items-center gap-3">
-              {/* Hamburger Button */}
-              <button 
-                className="md:hidden p-1.5 bg-slate-800 rounded border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors flex-shrink-0"
-                onClick={() => setIsMobileMenuOpen(true)}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-              </button>
+            <div className="flex flex-col mb-4">
+              <div className="flex items-center gap-3">
+                <button 
+                  className="md:hidden p-1.5 bg-slate-800 rounded border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors flex-shrink-0"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                
+                <h2 className={`text-xl font-bold tracking-tight flex items-center gap-2 ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                  <svg className="w-5 h-5 hidden sm:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                  Threat Matrix Analysis
+                </h2>
+              </div>
               
-              {/* Threat Matrix Analysis Title */}
-              <h2 className={`text-xl font-bold tracking-tight flex items-center gap-2 ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                <svg className="w-5 h-5 hidden sm:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                Threat Matrix Analysis
-              </h2>
+              {/* Subtitle locked directly beneath the title */}
+              <p className="text-sm text-slate-400 mt-1 pl-11 sm:pl-7">Dynamic vulnerability mapping</p>
             </div>
-            <p className="text-sm text-slate-400 mt-3 sm:pl-7">Dynamic vulnerability mapping</p>
 
             {/* Actor Search Bar */}
             <div className="mt-4 relative w-full sm:max-w-sm sm:pl-7">
