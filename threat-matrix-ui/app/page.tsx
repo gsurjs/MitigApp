@@ -128,14 +128,32 @@ export default function Dashboard() {
                       {actor.mitre_id}
                     </span>
                   </div>
+                  
+                  {/* NEW: Granular Risk Scoring Bar */}
+                  <div className="my-4 bg-neutral-950 p-3 rounded border border-neutral-800">
+                    <div className="flex justify-between text-xs mb-1 text-gray-400">
+                      <span>Mitigation Progress</span>
+                      <span>{actor.mitigation_percent}% Protected</span>
+                    </div>
+                    <div className="w-full bg-red-950 rounded-full h-2.5">
+                      <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${actor.mitigation_percent}%` }}></div>
+                    </div>
+                    <p className="text-xs text-red-400 mt-2 text-right">
+                      {actor.exposed_vectors} / {actor.total_vectors} attack vectors still open
+                    </p>
+                  </div>
+
                   <p className="text-sm text-gray-400 leading-relaxed">
                     {actor.description ? `${actor.description.substring(0, 150)}...` : "No description available in STIX data."}
                   </p>
+                  
+                  {/* Kept your aliases section intact */}
                   {actor.aliases && actor.aliases.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-neutral-800">
                       <p className="text-xs text-neutral-500">Aliases: {actor.aliases.join(', ')}</p>
                     </div>
                   )}
+                  
                 </div>
               ))}
             </div>
