@@ -82,13 +82,13 @@ for group in groups:
     mitre_id = next((ext["external_id"] for ext in group.get("external_references", []) if ext["source_name"] == "mitre-attack"), None)
     
     if mitre_id:
-        data = {
+        group_data.append({
             "id": group["id"],
             "mitre_id": mitre_id,
             "name": group["name"],
             "description": group.get("description", ""),
             "aliases": group.get("aliases", []) # JSONB array
-        }
+        })
         valid_groups.add(group["id"])
 
 batch_upsert("threat_groups", group_data)
