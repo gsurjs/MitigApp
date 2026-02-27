@@ -41,42 +41,61 @@ export default function Dashboard() {
     );
   };
 
-  const filteredMitigations = mitigations.filter(
-    (mit) =>
+  const filteredMitigations = mitigations
+    .filter((mit) =>
       mit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mit.mitre_id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    )
+    .sort((a, b) => {
+      const aChecked = checkedIds.includes(a.id);
+      const bChecked = checkedIds.includes(b.id);
+
+      // If 'a' is checked but 'b' is not, 'a' moves up
+      if (aChecked && !bChecked) return -1;
+      
+      // If 'b' is checked but 'a' is not, 'b' moves up
+      if (!aChecked && bChecked) return 1;
+      
+      // If both share the same status, sort them alphabetically by MITRE ID
+      return a.mitre_id.localeCompare(b.mitre_id);
+    });
 
   return (
-    // Switched to a clean sans-serif font and light slate background
-    <main className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
+    <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30">
       
       {/* LEFT PANEL: Defensive Posture Controls */}
-      <div className="w-1/3 flex flex-col border-r border-slate-200 bg-white shadow-sm z-10">
-        <div className="p-6 border-b border-slate-100">
-          <h2 className="text-xl font-bold text-slate-900 mb-1">Defensive Posture</h2>
-          <p className="text-sm text-slate-500 mb-4">Select active mitigations to assess current risk exposure.</p>
-          <input
-            type="text"
-            placeholder="Search mitigations (e.g. M1031)..."
-            className="w-full bg-slate-50 border border-slate-300 text-slate-900 p-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="w-1/3 flex flex-col border-r border-slate-800 bg-slate-900 z-10">
+        <div className="p-6 border-b border-slate-800">
+          {/* UPDATED: Blue Shield Icon and Blue Title */}
+          <h2 className="text-xl font-bold text-blue-400 mb-1 tracking-tight flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            Defensive Posture
+          </h2>
+          <p className="text-sm text-slate-400 mb-5 pl-7">Select active mitigations to assess risk exposure.</p>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search mitigations (e.g. M1031)..."
+              className="w-full bg-slate-800/50 border border-slate-700 text-slate-200 p-2.5 pl-10 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm placeholder-slate-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <svg className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {filteredMitigations.map((mit: any) => (
-            <div key={mit.id} className="flex items-start mb-2 cursor-pointer hover:bg-slate-50 p-3 rounded-lg transition-colors border border-transparent hover:border-slate-100">
+            <div key={mit.id} className="flex items-start mb-1 cursor-pointer hover:bg-slate-800/50 p-3 rounded-lg transition-colors border border-transparent hover:border-slate-700 group">
               <input
                 type="checkbox"
-                className="mt-0.5 mr-3 w-4 h-4 accent-blue-600 cursor-pointer rounded border-slate-300"
+                className="mt-0.5 mr-3 w-4 h-4 accent-blue-500 cursor-pointer rounded border-slate-600 bg-slate-800"
                 checked={checkedIds.includes(mit.id)}
                 onChange={() => handleToggle(mit.id)}
               />
               <div>
-                <p className="font-semibold text-slate-800 text-sm">{mit.name}</p>
-                <p className="text-xs text-slate-400 font-mono mt-0.5">{mit.mitre_id}</p>
+                <p className="font-medium text-slate-200 text-sm">{mit.name}</p>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">{mit.mitre_id}</p>
               </div>
             </div>
           ))}
@@ -84,38 +103,44 @@ export default function Dashboard() {
       </div>
 
       {/* RIGHT PANEL: Intelligence Output */}
-      <div className="w-2/3 flex flex-col bg-slate-50">
+      <div className="w-2/3 flex flex-col bg-slate-950/50 relative">
         {/* Dynamic Risk Header */}
-        <div className={`p-6 border-b flex justify-between items-center transition-colors duration-500 ${exposedActors.length > 0 ? 'bg-white border-slate-200' : 'bg-emerald-50 border-emerald-100'}`}>
+        <div className={`p-6 border-b flex justify-between items-center transition-colors duration-500 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Threat Matrix Analysis</h2>
-            <p className="text-sm text-slate-500 mt-1">Real-time vulnerability mapping</p>
+            {/* UPDATED: Rose Alert Icon and Rose Title */}
+            <h2 className={`text-xl font-bold tracking-tight flex items-center gap-2 ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              Threat Matrix Analysis
+            </h2>
+            <p className="text-sm text-slate-400 mt-1 pl-7">Dynamic vulnerability mapping</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-500 font-medium">Exposed Actors</p>
-            <p className={`text-4xl font-black tracking-tight ${exposedActors.length > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-              {exposedActors.length}
-            </p>
+          <div className="text-right flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
+              <p className={`text-4xl font-bold tracking-tight ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                {exposedActors.length}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Remediation Roadmap Engine */}
         {recommendations.length > 0 && (
-          <div className="p-6 bg-blue-50/50 border-b border-blue-100">
-            <h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider mb-4">Priority Remediation Roadmap</h3>
+          <div className="p-6 bg-slate-900 border-b border-slate-800">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Priority Remediation Roadmap</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {recommendations.map((rec, index) => (
                 <div 
                   key={rec.id} 
-                  className="bg-white border border-blue-200 p-4 rounded-xl shadow-sm cursor-pointer hover:shadow-md hover:border-blue-300 transition-all border-l-4 border-l-blue-500 group" 
+                  className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl cursor-pointer hover:bg-slate-800 hover:border-blue-500/50 transition-all border-l-4 border-l-blue-500 group" 
                   onClick={() => handleToggle(rec.id)}
                 >
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-blue-600 font-bold text-xs uppercase tracking-wide">Step {index + 1}</span>
-                    <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Impact: {rec.impact_score} vectors</span>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-blue-400 font-bold text-xs uppercase tracking-wide">Step {index + 1}</span>
+                    <span className="text-[10px] font-medium text-slate-300 bg-slate-700/50 px-2 py-1 rounded-full border border-slate-600">Impact: {rec.impact_score} vectors</span>
                   </div>
-                  <p className="text-sm font-bold text-slate-800 leading-snug">{rec.name}</p>
-                  <p className="text-xs text-slate-500 mt-3 group-hover:text-blue-600 transition-colors">Click to simulate implementation &rarr;</p>
+                  <p className="text-sm font-semibold text-slate-200 leading-snug">{rec.name}</p>
+                  <p className="text-xs text-slate-500 mt-3 group-hover:text-blue-400 transition-colors">Click to simulate implementation &rarr;</p>
                 </div>
               ))}
             </div>
@@ -125,60 +150,59 @@ export default function Dashboard() {
         {/* Threat Actor Feed */}
         <div className="flex-1 overflow-y-auto p-6">
           {exposedActors.length === 0 ? (
-            <div className="flex flex-col h-full items-center justify-center text-emerald-600">
-              <div className="bg-emerald-100 p-4 rounded-full mb-4">
+            <div className="flex flex-col h-full items-center justify-center text-emerald-500">
+              <div className="bg-emerald-500/10 p-4 rounded-full mb-4 border border-emerald-500/20">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
               </div>
               <p className="text-xl font-bold">Network Secure</p>
-              <p className="text-sm text-emerald-600/70 mt-2">No unmitigated threat actors detected.</p>
+              <p className="text-sm text-emerald-500/70 mt-2">No unmitigated threat actors detected.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
               {exposedActors.map((actor: any) => (
-                <div key={actor.mitre_id || actor.id} className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    {/* Removed JSON brackets */}
-                    <h3 className="text-lg font-bold text-slate-900">
+                <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-slate-700 transition-colors shadow-sm">
+                  
+                  <div className="flex justify-between items-start mb-5">
+                    {/* UPDATED: Red Actor Name, No Brackets */}
+                    <h3 className="text-lg font-bold text-rose-500 tracking-tight">
                       {actor.name}
                     </h3>
-                    <span className="text-xs font-mono bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded-md">
+                    <span className="text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-md">
                       {actor.mitre_id}
                     </span>
                   </div>
                   
                   {/* Granular Risk Scoring Bar */}
-                  <div className="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <div className="flex justify-between text-xs mb-1.5 font-medium text-slate-600">
-                      <span>Mitigation Progress</span>
-                      <span>{actor.mitigation_percent}% Protected</span>
+                  <div className="mb-5 bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/50">
+                    <div className="flex justify-between text-xs mb-2 font-medium text-slate-400">
+                      <span>Mitigation Status</span>
+                      <span className="text-emerald-400">{actor.mitigation_percent}% Protected</span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${actor.mitigation_percent}%` }}></div>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${actor.mitigation_percent}%` }}></div>
                     </div>
-                    <p className="text-xs text-rose-600 mt-2 text-right font-medium">
+                    <p className="text-xs text-rose-400 mt-2 text-right font-medium">
                       {actor.exposed_vectors} / {actor.total_vectors} vectors exposed
                     </p>
                   </div>
 
-                  {/* Cleaned Description */}
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-sm text-slate-400 leading-relaxed">
                     {cleanDescription(actor.description)}
                   </p>
                   
                   {/* Expandable Exposed Vectors List */}
                   {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
-                    <details className="mt-4 group border-t border-slate-100 pt-3">
-                      <summary className="text-xs font-semibold text-rose-600 cursor-pointer list-none flex items-center hover:text-rose-700 transition-colors">
+                    <details className="mt-5 group border-t border-slate-800/60 pt-4">
+                      <summary className="text-sm font-medium text-blue-400 cursor-pointer list-none flex items-center hover:text-blue-300 transition-colors w-fit">
                         <svg className="w-4 h-4 mr-1.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                        View {actor.exposed_vectors} Exposed Attack Vectors
+                        View {actor.exposed_vectors} exposed vectors
                       </summary>
-                      {/* Scrollable container so massive lists don't break the UI */}
-                      <div className="mt-3 max-h-48 overflow-y-auto pr-2">
+                      <div className="mt-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         <ul className="space-y-2">
                           {actor.exposed_techniques.map((tech: any) => (
-                            <li key={tech.mitre_id} className="text-xs flex justify-between items-center p-2.5 bg-rose-50/50 rounded-lg border border-rose-100/50">
-                              <span className="font-medium text-slate-700">{tech.name}</span>
-                              <span className="font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded shadow-sm border border-slate-200">{tech.mitre_id}</span>
+                            <li key={tech.mitre_id} className="text-xs flex justify-between items-center p-2.5 bg-slate-950/50 rounded-md border border-slate-800/80">
+                              <span className="font-medium text-slate-300">{tech.name}</span>
+                              <span className="font-mono text-slate-500 text-[10px]">{tech.mitre_id}</span>
                             </li>
                           ))}
                         </ul>
@@ -187,21 +211,19 @@ export default function Dashboard() {
                   )}
 
                   {actor.aliases && actor.aliases.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="text-xs text-slate-500">
-                        <span className="font-semibold text-slate-700">Aliases: </span>
+                    <div className="mt-5 pt-4 border-t border-slate-800/60">
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        <span className="font-semibold text-slate-300">Aliases: </span>
                         {actor.aliases.join(', ')}
                       </p>
                     </div>
                   )}
-                  
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
-
     </main>
   );
 }
