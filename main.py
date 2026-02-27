@@ -24,7 +24,7 @@ def read_root():
 @app.get("/api/mitigations")
 def get_mitigations():
     """Fetches all mitigations to populate the front-end checkboxes."""
-    response = supabase.table("mitigations").select("*").execute()
+    response = supabase.table("mitigations").select("*").limit(10000).execute()
     return response.data
 
 # Define the Expected Incoming Data Model
@@ -45,11 +45,12 @@ def analyze_risk(request: MitigationRequest):
         blocked_techs_response = supabase.table("mitigation_blocks_technique") \
             .select("technique_id") \
             .in_("mitigation_id", request.mitigated_ids) \
+            .limit(10000) \
             .execute()
         blocked_technique_ids = {row["technique_id"] for row in blocked_techs_response.data}
 
     # Step B: Pull all known threat actor techniques
-    all_group_techs = supabase.table("group_uses_technique").select("*").execute()
+    all_group_techs = supabase.table("group_uses_technique").select("*").limit(50000).execute()
 
     # Step C: Cross-reference and Calculate Vector Coverage
     group_stats = {} # Will hold {"group_id": {"total": 0, "exposed": 0}}
@@ -73,8 +74,8 @@ def analyze_risk(request: MitigationRequest):
     exposed_group_ids = [g_id for g_id, stats in group_stats.items() if stats["exposed"] > 0]
 
     # Step D: Calculate ROI for Unchecked Mitigations
-    all_blocks = supabase.table("mitigation_blocks_technique").select("*").execute()
-    all_mitigations = supabase.table("mitigations").select("*").execute()
+    all_blocks = supabase.table("mitigation_blocks_technique").select("*").limit(50000).execute()
+    all_mitigations = supabase.table("mitigations").select("*").limit(10000).execute()
     
     recommendations = []
     
@@ -107,10 +108,11 @@ def analyze_risk(request: MitigationRequest):
     actors_response = supabase.table("threat_groups") \
         .select("id, name, mitre_id, aliases, description") \
         .in_("id", list(exposed_group_ids)) \
+        .limit(10000) \
         .execute()
     
     # Fetch technique names so we can show them to client
-    all_techniques = supabase.table("techniques").select("id, name, mitre_id").execute()
+    all_techniques = supabase.table("techniques").select("id, name, mitre_id").limit(50000).execute()
     tech_map = {t["id"]: {"name": t["name"], "mitre_id": t["mitre_id"]} for t in all_techniques.data}
 
     # Map the vector math into the final payload
