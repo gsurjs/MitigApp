@@ -6,6 +6,7 @@ export default function Dashboard() {
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [exposedActors, setExposedActors] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [recommendations, setRecommendations] = useState<any[]>([]);
 
   // 1. Fetch Mitigations on Load
   useEffect(() => {
@@ -22,7 +23,10 @@ export default function Dashboard() {
       body: JSON.stringify({ mitigated_ids: checkedIds }),
     })
       .then((res) => res.json())
-      .then((data) => setExposedActors(data.exposed_actors || []));
+      .then((data) => {
+        setExposedActors(data.exposed_actors || []);
+        setRecommendations(data.recommendations || []); // Capture the roadmap
+      });
   }, [checkedIds]);
 
   // Handle Checkbox Toggles
@@ -86,6 +90,25 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
+
+        {/* Remediation Roadmap Engine */}
+        {recommendations.length > 0 && (
+          <div className="p-6 border-b border-neutral-800 bg-neutral-900/30">
+            <h3 className="text-lg font-bold text-yellow-500 mb-3">Priority Remediation Roadmap</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recommendations.map((rec, index) => (
+                <div key={rec.id} className="border border-yellow-900/50 bg-yellow-950/20 p-4 rounded cursor-pointer hover:bg-yellow-900/40 transition-colors" onClick={() => handleToggle(rec.id)}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-yellow-500 font-bold text-sm">Step {index + 1}</span>
+                    <span className="text-xs bg-yellow-900 text-yellow-300 px-2 py-0.5 rounded">Impact Score: {rec.impact_score}</span>
+                  </div>
+                  <p className="text-sm font-bold text-gray-200">{rec.mitre_id}: {rec.name}</p>
+                  <p className="text-xs text-gray-400 mt-2">Click to implement and simulate risk reduction.</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Threat Actor Feed */}
         <div className="flex-1 overflow-y-auto p-6">
