@@ -1,0 +1,18 @@
+# Environments
+.env
+venv/
+env/
+.venv/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Supabase / Local Data
+.supabase/
+*.sqlite3
+
+# OS generated files
+.DS_Store
