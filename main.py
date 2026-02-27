@@ -60,7 +60,7 @@ def analyze_risk(request: MitigationRequest):
         t_id = row["technique_id"]
         
         if g_id not in group_stats:
-            group_stats[g_id] = {"total": 0, "exposed": 0}
+            group_stats[g_id] = {"total": 0, "exposed": 0, "exposed_tech_list": []}
             
         group_stats[g_id]["total"] += 1
         
@@ -107,6 +107,10 @@ def analyze_risk(request: MitigationRequest):
         .select("id, name, mitre_id, aliases, description") \
         .in_("id", list(exposed_group_ids)) \
         .execute()
+    
+    # Fetch technique names so we can show them to client
+    all_techniques = supabase.table("techniques").select("id, name, mitre_id").execute()
+    tech_map = {t["id"]: {"name": t["name"], "mitre_id": t["mitre_id"]} for t in all_techniques.data}
 
     # Map the vector math into the final payload
     for actor in actors_response.data:
@@ -114,6 +118,13 @@ def analyze_risk(request: MitigationRequest):
         actor["total_vectors"] = stats["total"]
         actor["exposed_vectors"] = stats["exposed"]
         actor["mitigation_percent"] = int(((stats["total"] - stats["exposed"]) / stats["total"]) * 100)
+
+        # Build the exact list of exposed techniques for the front end
+        exposed_tech_details = []
+        for t_id in stats["exposed_tech_list"]:
+            if t_id in tech_map:
+                exposed_tech_details.append(tech_map[t_id])
+        actor["exposed_techniques"] = exposed_tech_details
 
     # Sort actors by who has the most open vectors
     actors_response.data.sort(key=lambda x: x["exposed_vectors"], reverse=True)
