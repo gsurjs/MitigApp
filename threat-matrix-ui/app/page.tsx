@@ -44,11 +44,20 @@ export default function Dashboard() {
     );
   };
 
-  const filteredActors = exposedActors.filter(
-    (actor) =>
-      actor.name.toLowerCase().includes(actorSearch.toLowerCase()) ||
-      actor.mitre_id.toLowerCase().includes(actorSearch.toLowerCase())
-  );
+  const filteredActors = exposedActors.filter((actor) => {
+    const searchLower = actorSearch.toLowerCase();
+    
+    // Check main name and MITRE ID
+    const matchesName = actor.name.toLowerCase().includes(searchLower);
+    const matchesId = actor.mitre_id.toLowerCase().includes(searchLower);
+    
+    // Check if the search term exists inside any of the aliases
+    const matchesAlias = actor.aliases 
+      ? actor.aliases.some((alias: string) => alias.toLowerCase().includes(searchLower))
+      : false;
+
+    return matchesName || matchesId || matchesAlias;
+  });
 
   const filteredMitigations = mitigations
     .filter((mit) =>
