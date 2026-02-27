@@ -133,7 +133,7 @@ export default function Dashboard() {
               <p className="text-sm text-slate-400 mb-4 pl-7 pr-8 md:pr-0">Select active mitigations to assess risk exposure.</p>
             </div>
             
-            {/* NEW: Dynamic Clear Board Button */}
+            {/* Dynamic Clear Board Button */}
             {isBoardActive && (
               <button 
                 onClick={handleReset}
@@ -203,15 +203,35 @@ export default function Dashboard() {
             </div>
 
             {/* Actor Search Bar */}
-            <div className="mt-4 relative w-full sm:max-w-sm sm:pl-7">
-              <input
-                type="text"
-                placeholder="Find threat group..."
-                className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 p-2 pl-9 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 transition-colors text-xs placeholder-slate-600"
-                value={actorSearch}
-                onChange={(e) => setActorSearch(e.target.value)}
-              />
-              <svg className="w-3.5 h-3.5 absolute left-3 sm:left-10 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full sm:pl-7">
+              {/* Text Search */}
+              <div className="relative flex-1 sm:max-w-sm">
+                <input
+                  type="text"
+                  placeholder="Find threat group..."
+                  className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 p-2 pl-9 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 transition-colors text-xs placeholder-slate-600"
+                  value={actorSearch}
+                  onChange={(e) => setActorSearch(e.target.value)}
+                />
+                <svg className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+              
+              {/* Industry/Sector Dropdown */}
+              <div className="relative w-full sm:w-48">
+                <select
+                  className="w-full bg-slate-950/50 border border-slate-700 text-slate-300 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 transition-colors text-xs appearance-none cursor-pointer"
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                >
+                  {SECTORS.map((sector) => (
+                    <option key={sector.label} value={sector.label}>
+                      {sector.label}
+                    </option>
+                  ))}
+                </select>
+                {/* Custom dropdown arrow to match the theme */}
+                <svg className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
             </div>
           </div>
 
