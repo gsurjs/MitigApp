@@ -237,8 +237,8 @@ export default function Dashboard() {
 
           <div className="flex sm:block justify-between items-end sm:text-right border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
             <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
-            <p className={`text-3xl md:text-4xl font-bold tracking-tight ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-              {exposedActors.length}
+            <p className={`text-3xl md:text-4xl font-bold tracking-tight ${filteredActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {filteredActors.length}
             </p>
           </div>
         </div>
