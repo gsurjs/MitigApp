@@ -51,14 +51,25 @@ def analyze_risk(request: MitigationRequest):
     # Step B: Pull all known threat actor techniques
     all_group_techs = supabase.table("group_uses_technique").select("*").execute()
 
-    # Step C: Cross-reference to find exposed groups AND exposed techniques
-    exposed_group_ids = set()
+    # Step C: Cross-reference and Calculate Vector Coverage
+    group_stats = {} # Will hold {"group_id": {"total": 0, "exposed": 0}}
     exposed_technique_ids = set()
     
     for row in all_group_techs.data:
-        if row["technique_id"] not in blocked_technique_ids:
-            exposed_group_ids.add(row["group_id"])
-            exposed_technique_ids.add(row["technique_id"]) # Track the exact open doors
+        g_id = row["group_id"]
+        t_id = row["technique_id"]
+        
+        if g_id not in group_stats:
+            group_stats[g_id] = {"total": 0, "exposed": 0}
+            
+        group_stats[g_id]["total"] += 1
+        
+        if t_id not in blocked_technique_ids:
+            group_stats[g_id]["exposed"] += 1
+            exposed_technique_ids.add(t_id)
+
+    # Only keep groups that have at least 1 exposed technique
+    exposed_group_ids = [g_id for g_id, stats in group_stats.items() if stats["exposed"] > 0]
 
     # Step D: Calculate ROI for Unchecked Mitigations
     all_blocks = supabase.table("mitigation_blocks_technique").select("*").execute()
@@ -88,25 +99,30 @@ def analyze_risk(request: MitigationRequest):
     recommendations.sort(key=lambda x: x["impact_score"], reverse=True)
     top_recommendations = recommendations[:3] # Grab the top 3 actions
 
-    # Step E: Fetch the human-readable details for the exposed actors
+    # Step E: Fetch human-readable details and inject the new stats
     if not exposed_group_ids:
-        return {
-            "status": "secure", 
-            "total_exposed_actors": 0, 
-            "exposed_actors": [],
-            "recommendations": []
-        }
+        return {"status": "secure", "total_exposed_actors": 0, "exposed_actors": [], "recommendations": []}
         
     actors_response = supabase.table("threat_groups") \
         .select("id, name, mitre_id, aliases, description") \
         .in_("id", list(exposed_group_ids)) \
         .execute()
 
+    # Map the vector math into the final payload
+    for actor in actors_response.data:
+        stats = group_stats[actor["id"]]
+        actor["total_vectors"] = stats["total"]
+        actor["exposed_vectors"] = stats["exposed"]
+        actor["mitigation_percent"] = int(((stats["total"] - stats["exposed"]) / stats["total"]) * 100)
+
+    # Sort actors by who has the most open vectors
+    actors_response.data.sort(key=lambda x: x["exposed_vectors"], reverse=True)
+
     return {
         "status": "vulnerable",
         "total_exposed_actors": len(actors_response.data),
         "exposed_actors": actors_response.data,
-        "recommendations": top_recommendations # Send the roadmap to the front end
+        "recommendations": top_recommendations
     }
 
 # middleware for CORS to allow our React frontend to communicate with this API
