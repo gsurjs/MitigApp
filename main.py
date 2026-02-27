@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 from pydantic import BaseModel
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load the variables from the .env file
 load_dotenv()
@@ -73,3 +74,13 @@ def analyze_risk(request: MitigationRequest):
         "total_exposed_actors": len(actors_response.data),
         "exposed_actors": actors_response.data
     }
+
+
+# middleware for CORS to allow our React frontend to communicate with this API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], # React app's address
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
