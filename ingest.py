@@ -98,23 +98,29 @@ print(f"Successfully batch uploaded {len(group_data)} Threat Groups.")
 print("Parsing Relationships...")
 relationships = mem_store.query([stix2.Filter("type", "=", "relationship")])
 
-blocks_data = []
-uses_data = []
+# Use dictionaries to enforce uniqueness and prevent duplicate batch failures
+blocks_dedup = {}
+uses_dedup = {}
 
 for rel in relationships:
     source = rel.get("source_ref")
     target = rel.get("target_ref")
     rel_type = rel.get("relationship_type")
 
-    # Map: Mitigation blocks Technique (Validating IDs in memory to avoid crashing)
+    # Map: Mitigation blocks Technique 
     if source.startswith("course-of-action--") and target.startswith("attack-pattern--") and rel_type == "mitigates":
         if source in valid_mitigations and target in valid_techniques:
-            blocks_data.append({"mitigation_id": source, "technique_id": target})
+            # Using a tuple (source, target) as the key guarantees no duplicates
+            blocks_dedup[(source, target)] = {"mitigation_id": source, "technique_id": target}
 
     # Map: Threat Group uses Technique
     elif source.startswith("intrusion-set--") and target.startswith("attack-pattern--") and rel_type == "uses":
         if source in valid_groups and target in valid_techniques:
-            uses_data.append({"group_id": source, "technique_id": target})
+            uses_dedup[(source, target)] = {"group_id": source, "technique_id": target}
+
+# Convert deduplicated dictionaries back into flat lists for the upload
+blocks_data = list(blocks_dedup.values())
+uses_data = list(uses_dedup.values())
 
 batch_upsert("mitigation_blocks_technique", blocks_data)
 batch_upsert("group_uses_technique", uses_data)
