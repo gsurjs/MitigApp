@@ -18,6 +18,18 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [sectorFilter, setSectorFilter] = useState("All Sectors");
+
+  const SECTORS = [
+    { label: "All Sectors", keywords: [] },
+    { label: "Financial / Banking", keywords: ["financial", "bank", "atm", "crypto", "swift", "pos"] },
+    { label: "Government / Diplomatic", keywords: ["government", "diplomat", "embassy", "ministry", "state-sponsored"] },
+    { label: "Defense / Aerospace", keywords: ["defense", "military", "aerospace", "contractor", "aviation"] },
+    { label: "Healthcare / Medical", keywords: ["health", "hospital", "medical", "pharma"] },
+    { label: "Energy / ICS", keywords: ["energy", "oil", "gas", "industrial", "ics", "power", "utility"] },
+    { label: "Retail / Hospitality", keywords: ["retail", "hospitality", "restaurant", "point of sale"] },
+    { label: "Technology / Telecom", keywords: ["technology", "telecom", "software", "it provider"] },
+  ];
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/mitigations`)
