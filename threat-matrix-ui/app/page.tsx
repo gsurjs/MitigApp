@@ -66,6 +66,7 @@ export default function Dashboard() {
               <input
                 type="checkbox"
                 className="mt-1 mr-3 w-4 h-4 accent-green-600 cursor-pointer"
+                checked={checkedIds.includes(mit.id)}
                 onChange={() => handleToggle(mit.id)}
               />
               <div>
