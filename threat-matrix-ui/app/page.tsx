@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [actorSearch, setActorSearch] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/mitigations`)
@@ -69,17 +70,33 @@ export default function Dashboard() {
     });
 
   return (
-    <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30">
+    <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30 relative">
       
-      {/* LEFT PANEL: Defensive Posture Controls */}
-      <div className="w-1/3 flex flex-col border-r border-slate-800 bg-slate-900 z-10">
-        <div className="p-6 border-b border-slate-800">
-          {/* UPDATED: Blue Shield Icon and Blue Title */}
-          <h2 className="text-xl font-bold text-blue-400 mb-1 tracking-tight flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-            Defensive Posture
-          </h2>
-          <p className="text-sm text-slate-400 mb-5 pl-7">Select active mitigations to assess risk exposure.</p>
+      {/* Mobile Overlay Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 md:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* LEFT PANEL: Defensive Posture Controls (mobile-responsive) */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-4/5 max-w-sm flex flex-col border-r border-slate-800 bg-slate-900 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-1/3 ${isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}>
+        <div className="p-4 md:p-6 border-b border-slate-800 flex justify-between items-center">
+          <div>
+            <h2 className="text-lg md:text-xl font-bold text-blue-400 mb-1 tracking-tight flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+              Defensive Posture
+            </h2>
+            <p className="text-xs md:text-sm text-slate-400 pl-7 hidden md:block">Select active mitigations to assess risk exposure.</p>
+          </div>
+          {/* Close button for mobile */}
+          <button className="md:hidden text-slate-400 hover:text-white p-2" onClick={() => setIsMobileMenuOpen(false)}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <div className="p-4 md:p-6 border-b border-slate-800/50">
           <div className="relative">
             <input
               type="text"
@@ -97,32 +114,40 @@ export default function Dashboard() {
             <div key={mit.id} className="flex items-start mb-1 cursor-pointer hover:bg-slate-800/50 p-3 rounded-lg transition-colors border border-transparent hover:border-slate-700 group">
               <input
                 type="checkbox"
-                className="mt-0.5 mr-3 w-4 h-4 accent-blue-500 cursor-pointer rounded border-slate-600 bg-slate-800"
+                className="mt-0.5 mr-3 w-4 h-4 accent-blue-500 cursor-pointer rounded border-slate-600 bg-slate-800 flex-shrink-0"
                 checked={checkedIds.includes(mit.id)}
                 onChange={() => handleToggle(mit.id)}
               />
               <div>
-                <p className="font-medium text-slate-200 text-sm">{mit.name}</p>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">{mit.mitre_id}</p>
+                <p className="font-medium text-slate-200 text-sm leading-tight">{mit.name}</p>
+                <p className="text-xs text-slate-500 font-mono mt-1">{mit.mitre_id}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* RIGHT PANEL: Intelligence Output */}
-      <div className="w-2/3 flex flex-col bg-slate-950/50 relative">
+      {/* RIGHT PANEL: Intelligence Output (full width on mobile) */}
+      <div className="w-full md:w-2/3 flex flex-col flex-1 bg-slate-950/50 relative overflow-hidden">
         {/* Dynamic Risk Header */}
-        <div className={`p-6 border-b flex justify-between items-start transition-colors duration-500 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
+        <div className={`p-4 md:p-6 border-b flex flex-col sm:flex-row sm:justify-between sm:items-start transition-colors duration-500 gap-4 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
           <div className="flex-1">
-            <h2 className={`text-xl font-bold tracking-tight flex items-center gap-2 ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-              Threat Matrix Analysis
-            </h2>
-            <p className="text-sm text-slate-400 mt-3 pl-7">Dynamic vulnerability mapping</p>
+            <div className="flex items-center gap-3 mb-2 sm:mb-0">
+              {/* NEW: Hamburger Button */}
+              <button 
+                className="md:hidden p-1.5 bg-slate-800 rounded border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                onClick={() => setIsMobileMenuOpen(true)}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+              </button>
+              <h2 className={`text-lg md:text-xl font-bold tracking-tight flex items-center gap-2 ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                <svg className="w-5 h-5 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                Threat Matrix
+              </h2>
+            </div>
             
             {/* Actor Search Bar */}
-            <div className="mt-4 relative max-w-sm pl-7">
+            <div className="mt-2 sm:mt-4 relative w-full sm:max-w-sm sm:pl-7">
               <input
                 type="text"
                 placeholder="Find threat group..."
@@ -130,13 +155,13 @@ export default function Dashboard() {
                 value={actorSearch}
                 onChange={(e) => setActorSearch(e.target.value)}
               />
-              <svg className="w-3.5 h-3.5 absolute left-10 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <svg className="w-3.5 h-3.5 absolute left-3 sm:left-10 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
-            <p className={`text-4xl font-bold tracking-tight ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+          <div className="flex sm:block justify-between items-end sm:text-right border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
+            <p className="text-xs md:text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
+            <p className={`text-3xl md:text-4xl font-bold tracking-tight ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
               {exposedActors.length}
             </p>
           </div>
@@ -144,21 +169,21 @@ export default function Dashboard() {
 
         {/* Remediation Roadmap Engine */}
         {recommendations.length > 0 && (
-          <div className="p-6 bg-slate-900 border-b border-slate-800">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Priority Remediation Roadmap</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 md:p-6 bg-slate-900 border-b border-slate-800">
+            <h3 className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 md:mb-4">Priority Remediation Roadmap</h3>
+            {/* Added scrollable flex row on mobile, grid on desktop */}
+            <div className="flex overflow-x-auto md:grid md:grid-cols-3 gap-3 pb-2 md:pb-0 hide-scrollbar snap-x">
               {recommendations.map((rec, index) => (
                 <div 
                   key={rec.id} 
-                  className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl cursor-pointer hover:bg-slate-800 hover:border-blue-500/50 transition-all border-l-4 border-l-blue-500 group" 
+                  className="min-w-[240px] md:min-w-0 flex-shrink-0 bg-slate-800/50 border border-slate-700 p-3 md:p-4 rounded-xl cursor-pointer hover:bg-slate-800 hover:border-blue-500/50 transition-all border-l-4 border-l-blue-500 group snap-start" 
                   onClick={() => handleToggle(rec.id)}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-blue-400 font-bold text-xs uppercase tracking-wide">Step {index + 1}</span>
-                    <span className="text-[10px] font-medium text-slate-300 bg-slate-700/50 px-2 py-1 rounded-full border border-slate-600">Impact: {rec.impact_score} vectors</span>
+                  <div className="flex justify-between items-center mb-2 md:mb-3">
+                    <span className="text-blue-400 font-bold text-[10px] md:text-xs uppercase tracking-wide">Step {index + 1}</span>
+                    <span className="text-[10px] font-medium text-slate-300 bg-slate-700/50 px-2 py-0.5 md:py-1 rounded-full border border-slate-600">Impact: {rec.impact_score}</span>
                   </div>
-                  <p className="text-sm font-semibold text-slate-200 leading-snug">{rec.name}</p>
-                  <p className="text-xs text-slate-500 mt-3 group-hover:text-blue-400 transition-colors">Click to simulate implementation &rarr;</p>
+                  <p className="text-xs md:text-sm font-semibold text-slate-200 leading-snug truncate">{rec.name}</p>
                 </div>
               ))}
             </div>
@@ -166,60 +191,60 @@ export default function Dashboard() {
         )}
 
         {/* Threat Actor Feed */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {filteredActors.length === 0 ? (
-            <div className="flex flex-col h-full items-center justify-center text-emerald-500">
+            <div className="flex flex-col h-full items-center justify-center text-emerald-500 mt-10 md:mt-0">
               <div className="bg-emerald-500/10 p-4 rounded-full mb-4 border border-emerald-500/20">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
               </div>
-              <p className="text-xl font-bold">Network Secure</p>
-              <p className="text-sm text-emerald-500/70 mt-2">No unmitigated threat actors detected.</p>
+              <p className="text-lg md:text-xl font-bold">Network Secure</p>
+              <p className="text-xs md:text-sm text-emerald-500/70 mt-2 text-center px-4">No unmitigated threat actors detected.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 transition-all duration-500">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 transition-all duration-500 pb-10">
               {filteredActors.map((actor: any) => (
-                <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-slate-700 transition-colors shadow-sm">
+                <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-xl shadow-sm">
                   
-                  <div className="flex justify-between items-start mb-5">
-                    <h3 className="text-lg font-bold text-rose-500 tracking-tight">
+                  <div className="flex justify-between items-start mb-4 md:mb-5">
+                    <h3 className="text-base md:text-lg font-bold text-rose-500 tracking-tight leading-tight pr-2">
                       {actor.name}
                     </h3>
-                    <span className="text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-md">
+                    <span className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-md flex-shrink-0">
                       {actor.mitre_id}
                     </span>
                   </div>
                   
                   {/* Granular Risk Scoring Bar */}
-                  <div className="mb-5 bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/50">
-                    <div className="flex justify-between text-xs mb-2 font-medium text-slate-400">
+                  <div className="mb-4 md:mb-5 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
+                    <div className="flex justify-between text-[10px] md:text-xs mb-2 font-medium text-slate-400">
                       <span>Mitigation Status</span>
                       <span className="text-emerald-400">{actor.mitigation_percent}% Protected</span>
                     </div>
                     <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                       <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${actor.mitigation_percent}%` }}></div>
                     </div>
-                    <p className="text-xs text-rose-400 mt-2 text-right font-medium">
+                    <p className="text-[10px] md:text-xs text-rose-400 mt-2 text-right font-medium">
                       {actor.exposed_vectors} / {actor.total_vectors} vectors exposed
                     </p>
                   </div>
 
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
                     {cleanDescription(actor.description)}
                   </p>
                   
                   {/* Expandable Exposed Vectors List */}
                   {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
-                    <details className="mt-5 group border-t border-slate-800/60 pt-4">
-                      <summary className="text-sm font-medium text-blue-400 cursor-pointer list-none flex items-center hover:text-blue-300 transition-colors w-fit">
-                        <svg className="w-4 h-4 mr-1.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    <details className="mt-4 md:mt-5 group border-t border-slate-800/60 pt-3 md:pt-4">
+                      <summary className="text-[10px] md:text-sm font-medium text-blue-400 cursor-pointer list-none flex items-center hover:text-blue-300 transition-colors w-fit">
+                        <svg className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-1.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                         View {actor.exposed_vectors} exposed vectors
                       </summary>
-                      <div className="mt-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                        <ul className="space-y-2">
+                      <div className="mt-3 max-h-40 md:max-h-48 overflow-y-auto pr-1 md:pr-2 custom-scrollbar">
+                        <ul className="space-y-1.5 md:space-y-2">
                           {actor.exposed_techniques.map((tech: any) => (
-                            <li key={tech.mitre_id} className="text-xs flex justify-between items-center p-2.5 bg-slate-950/50 rounded-md border border-slate-800/80">
-                              <span className="font-medium text-slate-300">{tech.name}</span>
-                              <span className="font-mono text-slate-500 text-[10px]">{tech.mitre_id}</span>
+                            <li key={tech.mitre_id} className="text-[10px] md:text-xs flex justify-between items-center p-2 md:p-2.5 bg-slate-950/50 rounded-md border border-slate-800/80 gap-2">
+                              <span className="font-medium text-slate-300 truncate">{tech.name}</span>
+                              <span className="font-mono text-slate-500 text-[8px] md:text-[10px] flex-shrink-0">{tech.mitre_id}</span>
                             </li>
                           ))}
                         </ul>
@@ -228,8 +253,8 @@ export default function Dashboard() {
                   )}
 
                   {actor.aliases && actor.aliases.length > 0 && (
-                    <div className="mt-5 pt-4 border-t border-slate-800/60">
-                      <p className="text-xs text-slate-400 leading-relaxed">
+                    <div className="mt-4 md:mt-5 pt-3 md:pt-4 border-t border-slate-800/60">
+                      <p className="text-[10px] md:text-xs text-slate-400 leading-relaxed">
                         <span className="font-semibold text-slate-300">Aliases: </span>
                         {actor.aliases.join(', ')}
                       </p>
