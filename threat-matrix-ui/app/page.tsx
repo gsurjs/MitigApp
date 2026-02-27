@@ -143,9 +143,9 @@ export default function Dashboard() {
                 <svg className="w-5 h-5 hidden sm:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 Threat Matrix Analysis
               </h2>
-              <p className="text-sm text-slate-400 mt-3 sm:pl-7">Dynamic vulnerability mapping</p>
             </div>
-            
+            <p className="text-sm text-slate-400 mt-3 sm:pl-7">Dynamic vulnerability mapping</p>
+
             {/* Actor Search Bar */}
             <div className="mt-4 relative w-full sm:max-w-sm sm:pl-7">
               <input
@@ -180,7 +180,7 @@ export default function Dashboard() {
                 >
                   <div className="flex justify-between items-center mb-2 md:mb-3">
                     <span className="text-blue-400 font-bold text-[10px] md:text-xs uppercase tracking-wide">Step {index + 1}</span>
-                    <span className="text-[10px] font-medium text-slate-300 bg-slate-700/50 px-2 py-0.5 md:py-1 rounded-full border border-slate-600">Impact: {rec.impact_score}</span>
+                    <span className="text-[10px] font-medium text-slate-300 bg-slate-700/50 px-2 py-0.5 md:py-1 rounded-full border border-slate-600">Impact: {rec.impact_score} vectors</span>
                   </div>
                   <p className="text-xs md:text-sm font-semibold text-slate-200 leading-snug truncate">{rec.name}</p>
                 </div>
