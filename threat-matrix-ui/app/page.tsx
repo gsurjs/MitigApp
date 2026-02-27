@@ -165,6 +165,27 @@ export default function Dashboard() {
                     {cleanDescription(actor.description)}
                   </p>
                   
+                  {/* Expandable Exposed Vectors List */}
+                  {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
+                    <details className="mt-4 group border-t border-slate-100 pt-3">
+                      <summary className="text-xs font-semibold text-rose-600 cursor-pointer list-none flex items-center hover:text-rose-700 transition-colors">
+                        <svg className="w-4 h-4 mr-1.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                        View {actor.exposed_vectors} Exposed Attack Vectors
+                      </summary>
+                      {/* Scrollable container so massive lists don't break the UI */}
+                      <div className="mt-3 max-h-48 overflow-y-auto pr-2">
+                        <ul className="space-y-2">
+                          {actor.exposed_techniques.map((tech: any) => (
+                            <li key={tech.mitre_id} className="text-xs flex justify-between items-center p-2.5 bg-rose-50/50 rounded-lg border border-rose-100/50">
+                              <span className="font-medium text-slate-700">{tech.name}</span>
+                              <span className="font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded shadow-sm border border-slate-200">{tech.mitre_id}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </details>
+                  )}
+
                   {actor.aliases && actor.aliases.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-slate-100">
                       <p className="text-xs text-slate-500">

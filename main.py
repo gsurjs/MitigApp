@@ -66,6 +66,7 @@ def analyze_risk(request: MitigationRequest):
         
         if t_id not in blocked_technique_ids:
             group_stats[g_id]["exposed"] += 1
+            group_stats[g_id]["exposed_tech_list"].append(t_id)
             exposed_technique_ids.add(t_id)
 
     # Only keep groups that have at least 1 exposed technique
