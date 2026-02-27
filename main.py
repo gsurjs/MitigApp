@@ -24,6 +24,7 @@ def read_root():
 @app.get("/api/mitigations")
 def get_mitigations():
     """Fetches all mitigations to populate the front-end checkboxes."""
+    # Added .limit(10000) to bypass Supabase's default 1000 row cap
     response = supabase.table("mitigations").select("*").limit(10000).execute()
     return response.data
 
@@ -49,11 +50,11 @@ def analyze_risk(request: MitigationRequest):
             .execute()
         blocked_technique_ids = {row["technique_id"] for row in blocked_techs_response.data}
 
-    # Step B: Pull all known threat actor techniques
+    # Step B: Pull all known threat actor techniques (Lifted limits for full MITRE dataset)
     all_group_techs = supabase.table("group_uses_technique").select("*").limit(50000).execute()
 
     # Step C: Cross-reference and Calculate Vector Coverage
-    group_stats = {} # Will hold {"group_id": {"total": 0, "exposed": 0}}
+    group_stats = {} 
     exposed_technique_ids = set()
     
     for row in all_group_techs.data:
@@ -78,15 +79,10 @@ def analyze_risk(request: MitigationRequest):
     all_mitigations = supabase.table("mitigations").select("*").limit(10000).execute()
     
     recommendations = []
-    
-    # Only evaluate mitigations the user hasn't checked yet
     unchecked_mitigations = [m for m in all_mitigations.data if m["id"] not in request.mitigated_ids]
     
     for mit in unchecked_mitigations:
-        # Find which techniques this specific mitigation blocks
         blocks = {b["technique_id"] for b in all_blocks.data if b["mitigation_id"] == mit["id"]}
-        
-        # The 'Impact Score' is how many currently exposed techniques this mitigation shuts down
         impact = len(blocks.intersection(exposed_technique_ids))
         
         if impact > 0:
@@ -99,7 +95,7 @@ def analyze_risk(request: MitigationRequest):
 
     # Sort to find the highest impact mitigations
     recommendations.sort(key=lambda x: x["impact_score"], reverse=True)
-    top_recommendations = recommendations[:3] # Grab the top 3 actions
+    top_recommendations = recommendations[:3] 
 
     # Step E: Fetch human-readable details and inject the new stats
     if not exposed_group_ids:
@@ -111,7 +107,6 @@ def analyze_risk(request: MitigationRequest):
         .limit(10000) \
         .execute()
     
-    # Fetch technique names so we can show them to client
     all_techniques = supabase.table("techniques").select("id, name, mitre_id").limit(50000).execute()
     tech_map = {t["id"]: {"name": t["name"], "mitre_id": t["mitre_id"]} for t in all_techniques.data}
 
@@ -129,7 +124,7 @@ def analyze_risk(request: MitigationRequest):
                 exposed_tech_details.append(tech_map[t_id])
         actor["exposed_techniques"] = exposed_tech_details
 
-    # Sort actors by who has the most open vectors
+    # Sort actors so the most "Protected" ones appear first
     actors_response.data.sort(key=lambda x: x["mitigation_percent"], reverse=True)
 
     return {
@@ -139,10 +134,10 @@ def analyze_risk(request: MitigationRequest):
         "recommendations": top_recommendations
     }
 
-# middleware for CORS to allow our React frontend to communicate with this API
+# middleware for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
