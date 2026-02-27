@@ -127,8 +127,6 @@ export default function Dashboard() {
           <button className="md:hidden absolute top-6 right-4 text-slate-400 hover:text-white p-1" onClick={() => setIsMobileMenuOpen(false)}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
-          <p className="text-sm text-slate-400 mb-5 pl-7 pr-8 md:pr-0">Select active mitigations to assess risk exposure.</p>
-          
           <div className="relative">
             <input
               type="text"
