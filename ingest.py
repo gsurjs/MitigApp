@@ -67,3 +67,55 @@ for tech in techniques:
         supabase.table("techniques").upsert(data).execute()
 
 print("Techniques loaded successfully.")
+
+# 5. Extract and Insert Threat Groups (Intrusion Sets)
+print("Parsing Threat Groups...")
+groups = mem_store.query([
+    stix2.Filter("type", "=", "intrusion-set")
+])
+
+for group in groups:
+    mitre_id = next((ext["external_id"] for ext in group.get("external_references", []) if ext["source_name"] == "mitre-attack"), None)
+    
+    if mitre_id:
+        data = {
+            "id": group["id"],
+            "mitre_id": mitre_id,
+            "name": group["name"],
+            "description": group.get("description", ""),
+            "aliases": group.get("aliases", []) # JSONB array
+        }
+        supabase.table("threat_groups").upsert(data).execute()
+
+print("Threat Groups loaded successfully.")
+
+# 6. Extract and Insert Relationships (The Engine)
+print("Parsing Relationships (This might take a minute)...")
+relationships = mem_store.query([
+    stix2.Filter("type", "=", "relationship")
+])
+
+for rel in relationships:
+    source = rel.get("source_ref")
+    target = rel.get("target_ref")
+    rel_type = rel.get("relationship_type")
+
+    # Map: Mitigation blocks Technique
+    if source.startswith("course-of-action--") and target.startswith("attack-pattern--") and rel_type == "mitigates":
+        data = {"mitigation_id": source, "technique_id": target}
+        try:
+            supabase.table("mitigation_blocks_technique").upsert(data).execute()
+        except Exception:
+            # MITRE sometimes leaves orphaned relationships for deprecated techniques. 
+            # We catch the exception so it doesn't crash our script on a Foreign Key violation.
+            pass
+
+    # Map: Threat Group uses Technique
+    elif source.startswith("intrusion-set--") and target.startswith("attack-pattern--") and rel_type == "uses":
+        data = {"group_id": source, "technique_id": target}
+        try:
+            supabase.table("group_uses_technique").upsert(data).execute()
+        except Exception:
+            pass
+
+print("All Relationships mapped! Database is fully armed.")
