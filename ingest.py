@@ -13,6 +13,12 @@ url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
+# Helper function to insert data in massive chunks of 1000
+def batch_upsert(table_name, data_list, batch_size=1000):
+    for i in range(0, len(data_list), batch_size):
+        batch = data_list[i:i + batch_size]
+        supabase.table(table_name).upsert(batch).execute()
+
 # 2. Fetch the MITRE Enterprise ATT&CK Dataset
 print("Fetching MITRE STIX data...")
 MITRE_URL = "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
@@ -22,57 +28,55 @@ stix_json = response.json()
 # Load into stix2 MemoryStore for easy querying
 mem_store = MemoryStore(stix_data=stix_json["objects"])
 
+# Sets to hold valid IDs to prevent Foreign Key errors later
+valid_mitigations = set()
+valid_techniques = set()
+valid_groups = set()
+
 # 3. Extract and Insert Mitigations
 print("Parsing Mitigations...")
-mitigations = mem_store.query([
-    stix2.Filter("type", "=", "course-of-action")
-])
+mitigations = mem_store.query([stix2.Filter("type", "=", "course-of-action")])
+mit_data = []
 
 for mit in mitigations:
-    # Extract the public MITRE ID (e.g., M1031)
     mitre_id = next((ext["external_id"] for ext in mit.get("external_references", []) if ext["source_name"] == "mitre-attack"), None)
-    
     if mitre_id:
-        data = {
+        mit_data.append({
             "id": mit["id"],
             "mitre_id": mitre_id,
             "name": mit["name"],
             "description": mit.get("description", "")
-        }
-        # Insert into Supabase
-        supabase.table("mitigations").upsert(data).execute()
+        })
+        valid_mitigations.add(mit["id"])
 
-print("Mitigations loaded successfully.")
+batch_upsert("mitigations", mit_data)
+print(f"Successfully batch uploaded {len(mit_data)} Mitigations.")
 
 # 4. Extract and Insert Techniques
 print("Parsing Techniques...")
-techniques = mem_store.query([
-    stix2.Filter("type", "=", "attack-pattern")
-])
+techniques = mem_store.query([stix2.Filter("type", "=", "attack-pattern")])
+tech_data = []
 
 for tech in techniques:
     mitre_id = next((ext["external_id"] for ext in tech.get("external_references", []) if ext["source_name"] == "mitre-attack"), None)
-    
     if mitre_id:
-        # Extract tactics (e.g., Initial Access)
         tactics = [phase["phase_name"] for phase in tech.get("kill_chain_phases", [])]
-        
-        data = {
+        tech_data.append({
             "id": tech["id"],
             "mitre_id": mitre_id,
             "name": tech["name"],
             "description": tech.get("description", ""),
             "tactics": tactics
-        }
-        supabase.table("techniques").upsert(data).execute()
+        })
+        valid_techniques.add(tech["id"])
 
-print("Techniques loaded successfully.")
+batch_upsert("techniques", tech_data)
+print(f"Successfully batch uploaded {len(tech_data)} Techniques.")
 
-# 5. Extract and Insert Threat Groups (Intrusion Sets)
+# 5. Extract and Insert Threat Groups
 print("Parsing Threat Groups...")
-groups = mem_store.query([
-    stix2.Filter("type", "=", "intrusion-set")
-])
+groups = mem_store.query([stix2.Filter("type", "=", "intrusion-set")])
+group_data = []
 
 for group in groups:
     mitre_id = next((ext["external_id"] for ext in group.get("external_references", []) if ext["source_name"] == "mitre-attack"), None)
@@ -85,37 +89,35 @@ for group in groups:
             "description": group.get("description", ""),
             "aliases": group.get("aliases", []) # JSONB array
         }
-        supabase.table("threat_groups").upsert(data).execute()
+        valid_groups.add(group["id"])
 
-print("Threat Groups loaded successfully.")
+batch_upsert("threat_groups", group_data)
+print(f"Successfully batch uploaded {len(group_data)} Threat Groups.")
 
 # 6. Extract and Insert Relationships (The Engine)
-print("Parsing Relationships (This might take a minute)...")
-relationships = mem_store.query([
-    stix2.Filter("type", "=", "relationship")
-])
+print("Parsing Relationships...")
+relationships = mem_store.query([stix2.Filter("type", "=", "relationship")])
+
+blocks_data = []
+uses_data = []
 
 for rel in relationships:
     source = rel.get("source_ref")
     target = rel.get("target_ref")
     rel_type = rel.get("relationship_type")
 
-    # Map: Mitigation blocks Technique
+    # Map: Mitigation blocks Technique (Validating IDs in memory to avoid crashing)
     if source.startswith("course-of-action--") and target.startswith("attack-pattern--") and rel_type == "mitigates":
-        data = {"mitigation_id": source, "technique_id": target}
-        try:
-            supabase.table("mitigation_blocks_technique").upsert(data).execute()
-        except Exception:
-            # MITRE sometimes leaves orphaned relationships for deprecated techniques. 
-            # We catch the exception so it doesn't crash our script on a Foreign Key violation.
-            pass
+        if source in valid_mitigations and target in valid_techniques:
+            blocks_data.append({"mitigation_id": source, "technique_id": target})
 
     # Map: Threat Group uses Technique
     elif source.startswith("intrusion-set--") and target.startswith("attack-pattern--") and rel_type == "uses":
-        data = {"group_id": source, "technique_id": target}
-        try:
-            supabase.table("group_uses_technique").upsert(data).execute()
-        except Exception:
-            pass
+        if source in valid_groups and target in valid_techniques:
+            uses_data.append({"group_id": source, "technique_id": target})
 
-print("All Relationships mapped! Database is fully armed.")
+batch_upsert("mitigation_blocks_technique", blocks_data)
+batch_upsert("group_uses_technique", uses_data)
+print(f"Successfully batch uploaded {len(blocks_data)} Mitigation relationships and {len(uses_data)} Threat Actor behaviors.")
+
+print("Data sync complete! Execution time drastically reduced.")
