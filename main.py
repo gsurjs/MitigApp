@@ -65,7 +65,7 @@ def analyze_risk(request: MitigationRequest):
         return {"status": "secure", "message": "No known threat actors are currently bypassing your defenses.", "exposed_actors": []}
         
     actors_response = supabase.table("threat_groups") \
-        .select("name, mitre_id, aliases, description") \
+        .select("id, name, mitre_id, aliases, description") \
         .in_("id", list(exposed_group_ids)) \
         .execute()
 
