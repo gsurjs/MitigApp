@@ -119,6 +119,7 @@ export default function Dashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
               Threat Matrix Analysis
             </h2>
+            <p className="text-sm text-slate-400 mt-3 pl-7">Dynamic vulnerability mapping</p>
             
             {/* Actor Search Bar */}
             <div className="mt-4 relative max-w-sm pl-7">
@@ -131,7 +132,6 @@ export default function Dashboard() {
               />
               <svg className="w-3.5 h-3.5 absolute left-10 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <p className="text-sm text-slate-400 mt-3 pl-7">Dynamic vulnerability mapping</p>
           </div>
 
           <div className="text-right">
