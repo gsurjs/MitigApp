@@ -159,7 +159,7 @@ export default function Dashboard() {
               <p className="text-sm text-emerald-500/70 mt-2">No unmitigated threat actors detected.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 transition-all duration-500">
               {exposedActors.map((actor: any) => (
                 <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-slate-700 transition-colors shadow-sm">
                   

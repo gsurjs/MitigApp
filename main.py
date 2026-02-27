@@ -128,7 +128,7 @@ def analyze_risk(request: MitigationRequest):
         actor["exposed_techniques"] = exposed_tech_details
 
     # Sort actors by who has the most open vectors
-    actors_response.data.sort(key=lambda x: x["exposed_vectors"], reverse=True)
+    actors_response.data.sort(key=lambda x: x["mitigation_percent"], reverse=True)
 
     return {
         "status": "vulnerable",
