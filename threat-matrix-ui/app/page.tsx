@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [exposedActors, setExposedActors] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [actorSearch, setActorSearch] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -41,6 +42,12 @@ export default function Dashboard() {
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
+
+  const filteredActors = exposedActors.filter(
+    (actor) =>
+      actor.name.toLowerCase().includes(actorSearch.toLowerCase()) ||
+      actor.mitre_id.toLowerCase().includes(actorSearch.toLowerCase())
+  );
 
   const filteredMitigations = mitigations
     .filter((mit) =>
@@ -106,22 +113,32 @@ export default function Dashboard() {
       {/* RIGHT PANEL: Intelligence Output */}
       <div className="w-2/3 flex flex-col bg-slate-950/50 relative">
         {/* Dynamic Risk Header */}
-        <div className={`p-6 border-b flex justify-between items-center transition-colors duration-500 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
-          <div>
-            {/* UPDATED: Rose Alert Icon and Rose Title */}
+        <div className={`p-6 border-b flex justify-between items-start transition-colors duration-500 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
+          <div className="flex-1">
             <h2 className={`text-xl font-bold tracking-tight flex items-center gap-2 ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
               Threat Matrix Analysis
             </h2>
-            <p className="text-sm text-slate-400 mt-1 pl-7">Dynamic vulnerability mapping</p>
-          </div>
-          <div className="text-right flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
-              <p className={`text-4xl font-bold tracking-tight ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                {exposedActors.length}
-              </p>
+            
+            {/* Actor Search Bar */}
+            <div className="mt-4 relative max-w-sm pl-7">
+              <input
+                type="text"
+                placeholder="Find threat group..."
+                className="w-full bg-slate-950/50 border border-slate-700 text-slate-200 p-2 pl-9 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 transition-colors text-xs placeholder-slate-600"
+                value={actorSearch}
+                onChange={(e) => setActorSearch(e.target.value)}
+              />
+              <svg className="w-3.5 h-3.5 absolute left-10 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
+            <p className="text-sm text-slate-400 mt-3 pl-7">Dynamic vulnerability mapping</p>
+          </div>
+
+          <div className="text-right">
+            <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
+            <p className={`text-4xl font-bold tracking-tight ${exposedActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+              {exposedActors.length}
+            </p>
           </div>
         </div>
 
@@ -150,7 +167,7 @@ export default function Dashboard() {
 
         {/* Threat Actor Feed */}
         <div className="flex-1 overflow-y-auto p-6">
-          {exposedActors.length === 0 ? (
+          {filteredActors.length === 0 ? (
             <div className="flex flex-col h-full items-center justify-center text-emerald-500">
               <div className="bg-emerald-500/10 p-4 rounded-full mb-4 border border-emerald-500/20">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
@@ -160,11 +177,10 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 transition-all duration-500">
-              {exposedActors.map((actor: any) => (
+              {filteredActors.map((actor: any) => (
                 <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-slate-700 transition-colors shadow-sm">
                   
                   <div className="flex justify-between items-start mb-5">
-                    {/* UPDATED: Red Actor Name, No Brackets */}
                     <h3 className="text-lg font-bold text-rose-500 tracking-tight">
                       {actor.name}
                     </h3>
