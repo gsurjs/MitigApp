@@ -66,7 +66,8 @@ for tech in techniques:
             "mitre_id": mitre_id,
             "name": tech["name"],
             "description": tech.get("description", ""),
-            "tactics": tactics
+            "tactics": tactics,
+            "mitre_created": str(tech.get("created", ""))
         })
         valid_techniques.add(tech["id"])
 
@@ -87,7 +88,8 @@ for group in groups:
             "mitre_id": mitre_id,
             "name": group["name"],
             "description": group.get("description", ""),
-            "aliases": group.get("aliases", []) # JSONB array
+            "aliases": group.get("aliases", []), # JSONB array
+            "mitre_created": str(group.get("created", ""))
         })
         valid_groups.add(group["id"])
 
