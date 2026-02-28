@@ -5,8 +5,7 @@ import { useState, useEffect } from "react";
 const cleanDescription = (text: string) => {
   if (!text) return "No description available in STIX data.";
   // Converts [TeamTNT](https://...) to just "TeamTNT"
-  const plainText = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-  return plainText.length > 150 ? plainText.substring(0, 150) + "..." : plainText;
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 };
 
 export default function Dashboard() {
@@ -25,6 +24,13 @@ export default function Dashboard() {
   // Loading States
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
+  const [expandedActors, setExpandedActors] = useState<string[]>([]);
+
+  const toggleActorDescription = (id: string) => {
+    setExpandedActors((prev) => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
