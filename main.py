@@ -155,6 +155,44 @@ def analyze_risk(request: MitigationRequest):
         "recommendations": top_recommendations
     }
 
+@app.get("/api/emerging-vectors")
+def get_emerging_vectors():
+    """Fetches the 50 newest attack vectors and their associated threat group descriptions."""
+    
+    # 1. Grab the 50 newest techniques
+    response = supabase.table("techniques").select("id, name, mitre_id, mitre_created").order("mitre_created", desc=True).limit(50).execute()
+    newest_techs = response.data
+
+    if not newest_techs:
+        return []
+
+    tech_ids = [t["id"] for t in newest_techs]
+
+    # 2. Find which threat groups use these specific techniques
+    uses_response = supabase.table("group_uses_technique").select("group_id, technique_id").in_("technique_id", tech_ids).limit(10000).execute()
+    group_ids = list(set([row["group_id"] for row in uses_response.data]))
+
+    # 3. Get the descriptions of those threat groups
+    group_desc_map = {}
+    if group_ids:
+        groups_response = supabase.table("threat_groups").select("id, description").in_("id", group_ids).limit(1000).execute()
+        group_desc_map = {g["id"]: g["description"] for g in groups_response.data}
+
+    # 4. Map the descriptions back to the vectors
+    results = []
+    for tech in newest_techs:
+        associated_group_ids = [u["group_id"] for u in uses_response.data if u["technique_id"] == tech["id"]]
+        descriptions = [group_desc_map[g_id] for g_id in associated_group_ids if g_id in group_desc_map]
+        
+        results.append({
+            "mitre_id": tech["mitre_id"],
+            "name": tech["name"],
+            "created": tech["mitre_created"],
+            "associated_descriptions": descriptions
+        })
+
+    return results
+
 # middleware for CORS
 app.add_middleware(
     CORSMiddleware,
