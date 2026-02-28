@@ -393,32 +393,50 @@ export default function Dashboard() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-          {processedEmergingVectors.map((vec) => (
-            <div key={vec.mitre_id} className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl hover:border-emerald-500/30 transition-colors shadow-sm">
-              <div className="flex justify-between items-start mb-3">
-                <span className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{vec.mitre_id}</span>
-                <span className="text-[10px] font-medium text-emerald-500/80 border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                  {new Date(vec.created).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                </span>
-              </div>
-              <p className="text-sm font-bold text-slate-200 leading-snug mb-3">{vec.name}</p>
-              
-              <div className="space-y-1.5 pt-3 border-t border-slate-700/50">
-                <p className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Targeted Sectors</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {vec.sectors.length > 0 ? (
-                    vec.sectors.map((sec: string) => (
-                      <span key={sec} className="text-[9px] font-medium tracking-wide bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded">
-                        {sec}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-[9px] text-slate-500 border border-slate-700 bg-slate-800 px-1.5 py-0.5 rounded">Sector Agnostic</span>
-                  )}
+          {processedEmergingVectors.map((vec) => {
+            // Strip markdown links for a cleaner read, but keep the full length for the details panel
+            const fullDescription = vec.description 
+              ? vec.description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') 
+              : "No detailed description available in STIX data.";
+
+            return (
+              <div key={vec.mitre_id} className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl hover:border-emerald-500/30 transition-colors shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{vec.mitre_id}</span>
+                  <span className="text-[10px] font-medium text-emerald-500/80 border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    {new Date(vec.created).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-slate-200 leading-snug mb-3">{vec.name}</p>
+                
+                {/* Expandable Description Details */}
+                <details className="mt-2 mb-3 group">
+                  <summary className="text-[10px] font-medium text-emerald-400 cursor-pointer list-none flex items-center hover:text-emerald-300 transition-colors w-fit">
+                    <svg className="w-3.5 h-3.5 mr-1 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                    Read Vector Details
+                  </summary>
+                  <div className="mt-2 text-[10px] text-slate-400 leading-relaxed max-h-40 overflow-y-auto custom-scrollbar pr-2 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
+                    {fullDescription}
+                  </div>
+                </details>
+
+                <div className="space-y-1.5 pt-3 border-t border-slate-700/50">
+                  <p className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Targeted Sectors</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {vec.sectors.length > 0 ? (
+                      vec.sectors.map((sec: string) => (
+                        <span key={sec} className="text-[9px] font-medium tracking-wide bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded">
+                          {sec}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[9px] text-slate-500 border border-slate-700 bg-slate-800 px-1.5 py-0.5 rounded">Sector Agnostic</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </main>
