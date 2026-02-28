@@ -251,6 +251,16 @@ export default function Dashboard() {
                 {/* Custom dropdown arrow to match the theme */}
                 <svg className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </div>
+              {/* NEW: Live Intel Feed Button */}
+              <button 
+                onClick={() => setIsIntelFeedOpen(true)}
+                className="print:hidden hidden sm:flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Live Intel Feed
+              </button>
+
+
             </div>
           </div>
 
