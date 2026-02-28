@@ -1,5 +1,9 @@
 # MitigApp | Threat Matrix Analysis
 
+![MitigApp Dashboard Preview](./docs/dashboard-preview.png)
+
+**[🟢 View Live Application](https://mitigapp.vercel.app)**
+
 MitigApp is a dynamic vulnerability mapping and priority remediation engine. By processing raw MITRE ATT&CK STIX data, it transforms complex threat intelligence into actionable defensive analysis. This allows security professionals to instantly visualize their risk exposure and identify the mitigations that provide the highest ROI for their network.
 
 ## Features
