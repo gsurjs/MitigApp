@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [exposedActors, setExposedActors] = useState<any[]>([]);
   const [emergingVectors, setEmergingVectors] = useState<any[]>([]);
   const [isIntelFeedOpen, setIsIntelFeedOpen] = useState(false);
+  const [selectedVector, setSelectedVector] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [actorSearch, setActorSearch] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -409,16 +410,15 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm font-bold text-slate-200 leading-snug mb-3">{vec.name}</p>
                 
-                {/* Expandable Description Details */}
-                <details className="mt-2 mb-3 group">
-                  <summary className="text-[10px] font-medium text-emerald-400 cursor-pointer list-none flex items-center hover:text-emerald-300 transition-colors w-fit">
-                    <svg className="w-3.5 h-3.5 mr-1 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                    Read Vector Details
-                  </summary>
-                  <div className="mt-2 text-[10px] text-slate-400 leading-relaxed max-h-40 overflow-y-auto custom-scrollbar pr-2 bg-slate-900/50 p-2 rounded-lg border border-slate-700/50">
-                    {fullDescription}
-                  </div>
-                </details>
+                {/* Modal Trigger Button */}
+                <button 
+                  onClick={() => setSelectedVector(vec)}
+                  className="mt-2 mb-3 text-[10px] font-medium text-emerald-400 flex items-center hover:text-emerald-300 transition-colors bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded border border-emerald-500/30 w-fit"
+                >
+                  {/* Eye Icon */}
+                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                  Read Vector Details
+                </button>
 
                 <div className="space-y-1.5 pt-3 border-t border-slate-700/50">
                   <p className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Targeted Sectors</p>
