@@ -115,7 +115,19 @@ export default function Dashboard() {
 
   // Check if anything is currently active
   const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "" || sectorFilter !== "All Sectors";
-
+  // Process vectors to determine affected industries based on associated threat groups
+  const processedEmergingVectors = emergingVectors.map(vector => {
+    const affectedSectors = new Set<string>();
+    vector.associated_descriptions.forEach((desc: string) => {
+      const descLower = desc.toLowerCase();
+      SECTORS.forEach(sector => {
+        if (sector.label !== "All Sectors" && sector.keywords.some(kw => descLower.includes(kw))) {
+          affectedSectors.add(sector.label);
+        }
+      });
+    });
+    return { ...vector, sectors: Array.from(affectedSectors) };
+  });
   return (
     <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30 relative">
       
