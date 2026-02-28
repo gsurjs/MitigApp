@@ -160,7 +160,7 @@ def get_emerging_vectors():
     """Fetches the 50 newest attack vectors and their associated threat group descriptions."""
     
     # 1. Grab the 50 newest techniques
-    response = supabase.table("techniques").select("id, name, mitre_id, mitre_created").order("mitre_created", desc=True).limit(50).execute()
+    response = supabase.table("techniques").select("id, name, mitre_id, mitre_created, description").order("mitre_created", desc=True).limit(50).execute()
     newest_techs = response.data
 
     if not newest_techs:
@@ -187,6 +187,7 @@ def get_emerging_vectors():
         results.append({
             "mitre_id": tech["mitre_id"],
             "name": tech["name"],
+            "description": tech.get("description", ""), # Techniques table has a description field, but it may be empty
             "created": tech["mitre_created"],
             "associated_descriptions": descriptions
         })
