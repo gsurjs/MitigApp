@@ -19,9 +19,14 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [actorSearch, setActorSearch] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sectorFilter, setSectorFilter] = useState("All Sectors");
+  
+  // Loading States
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(true);
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
   const SECTORS = [
     { label: "All Sectors", keywords: [] },
@@ -34,18 +39,26 @@ export default function Dashboard() {
     { label: "Technology / Telecom", keywords: ["technology", "telecom", "software", "it provider"] },
   ];
 
+  // 1. Initial Data Load (Mitigations & Emerging Vectors)
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/mitigations`)
-      .then((res) => res.json())
-      .then((data) => setMitigations(data));
-
-    // Emerging Vectors fetch
-    fetch(`${API_BASE_URL}/api/emerging-vectors`)
-      .then((res) => res.json())
-      .then((data) => setEmergingVectors(data));
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/mitigations`).then(res => res.json()),
+      fetch(`${API_BASE_URL}/api/emerging-vectors`).then(res => res.json())
+    ])
+    .then(([mitigationsData, vectorsData]) => {
+      setMitigations(mitigationsData);
+      setEmergingVectors(vectorsData);
+      setIsInitialLoading(false);
+    })
+    .catch(err => {
+      console.error("Failed to fetch initial data:", err);
+      setIsInitialLoading(false);
+    });
   }, []);
 
+  // 2. Dynamic Risk Analysis Load (Runs when checkboxes change)
   useEffect(() => {
+    setIsAnalyzing(true);
     fetch(`${API_BASE_URL}/api/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,6 +68,11 @@ export default function Dashboard() {
       .then((data) => {
         setExposedActors(data.exposed_actors || []);
         setRecommendations(data.recommendations || []);
+        setIsAnalyzing(false);
+      })
+      .catch(err => {
+        console.error("Analysis failed:", err);
+        setIsAnalyzing(false);
       });
   }, [checkedIds]);
 
@@ -104,19 +122,13 @@ export default function Dashboard() {
       const aChecked = checkedIds.includes(a.id);
       const bChecked = checkedIds.includes(b.id);
 
-      // If 'a' is checked but 'b' is not, 'a' moves up
       if (aChecked && !bChecked) return -1;
-      
-      // If 'b' is checked but 'a' is not, 'b' moves up
       if (!aChecked && bChecked) return 1;
-      
-      // If both share the same status, sort them alphabetically by MITRE ID
       return a.mitre_id.localeCompare(b.mitre_id);
     });
 
-  // Check if anything is currently active
   const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "" || sectorFilter !== "All Sectors";
-  // Process vectors to determine affected industries based on associated threat groups
+  
   const processedEmergingVectors = emergingVectors.map(vector => {
     const affectedSectors = new Set<string>();
     vector.associated_descriptions.forEach((desc: string) => {
@@ -129,6 +141,7 @@ export default function Dashboard() {
     });
     return { ...vector, sectors: Array.from(affectedSectors) };
   });
+
   return (
     <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30 relative">
       
@@ -153,7 +166,6 @@ export default function Dashboard() {
               <p className="text-sm text-slate-400 mb-4 pl-7 pr-8 md:pr-0">Select active mitigations to assess risk exposure.</p>
             </div>
             
-            {/* Dynamic Clear Board Button */}
             {isBoardActive && (
               <button 
                 onClick={handleReset}
@@ -200,7 +212,6 @@ export default function Dashboard() {
 
       {/* RIGHT PANEL: Intelligence Output */}
       <div className="w-full md:w-2/3 flex flex-col flex-1 bg-slate-950/50 relative overflow-hidden">
-        {/* Dynamic Risk Header */}
         <div className={`p-4 md:p-6 border-b flex flex-col sm:flex-row sm:justify-between sm:items-start transition-colors duration-500 gap-4 ${exposedActors.length > 0 ? 'bg-slate-900 border-slate-800' : 'bg-emerald-900/10 border-emerald-900/30'}`}>
           <div className="flex-1">
             <div className="flex flex-col mb-4">
@@ -218,13 +229,10 @@ export default function Dashboard() {
                 </h2>
               </div>
               
-              {/* Subtitle locked directly beneath the title */}
               <p className="text-sm text-slate-400 mt-1 pl-11 sm:pl-7">Dynamic vulnerability mapping</p>
             </div>
 
-            {/* Actor Search Bar */}
             <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full sm:pl-7">
-              {/* Text Search */}
               <div className="relative flex-1 sm:max-w-sm">
                 <input
                   type="text"
@@ -236,7 +244,6 @@ export default function Dashboard() {
                 <svg className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
               </div>
               
-              {/* Industry/Sector Dropdown */}
               <div className="relative w-full sm:w-48">
                 <select
                   className="w-full bg-slate-950/50 border border-slate-700 text-slate-300 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 transition-colors text-xs appearance-none cursor-pointer"
@@ -249,32 +256,41 @@ export default function Dashboard() {
                     </option>
                   ))}
                 </select>
-                {/* Custom dropdown arrow to match the theme */}
                 <svg className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </div>
-              {/* NEW: Live Intel Feed Button */}
+
+              {/* Live Intel Feed Button (Desktop) */}
               <button 
                 onClick={() => setIsIntelFeedOpen(true)}
-                className="print:hidden hidden sm:flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 Live Intel Feed
               </button>
-
-
             </div>
           </div>
 
           <div className="flex sm:block justify-between items-end sm:text-right border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
-            <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
-            <p className={`text-3xl md:text-4xl font-bold tracking-tight ${filteredActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-              {filteredActors.length}
-            </p>
+            {/* Live Intel Feed Button (Mobile) */}
+            <button 
+              onClick={() => setIsIntelFeedOpen(true)}
+              className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors mb-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              Live Intel
+            </button>
+            
+            <div className="text-right">
+              <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
+              <p className={`text-3xl md:text-4xl font-bold tracking-tight ${filteredActors.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                {filteredActors.length}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Remediation Roadmap Engine */}
-        {recommendations.length > 0 && (
+        {recommendations.length > 0 && !isInitialLoading && !isAnalyzing && (
           <div className="p-4 md:p-6 bg-slate-900 border-b border-slate-800">
             <h3 className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 md:mb-4">Priority Remediation Roadmap</h3>
             <div className="flex overflow-x-auto md:grid md:grid-cols-3 gap-3 pb-2 md:pb-0 hide-scrollbar snap-x">
@@ -297,7 +313,18 @@ export default function Dashboard() {
 
         {/* Threat Actor Feed */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          {filteredActors.length === 0 ? (
+          {isInitialLoading || isAnalyzing ? (
+            // LOADING STATE
+            <div className="flex flex-col h-full items-center justify-center text-blue-500 mt-10 md:mt-0">
+              <svg className="animate-spin w-10 h-10 mb-4 text-blue-500/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="text-lg md:text-xl font-bold animate-pulse text-blue-400">Analyzing Threat Matrix...</p>
+              <p className="text-xs text-slate-500 mt-2">Cross-referencing active mitigations</p>
+            </div>
+          ) : filteredActors.length === 0 ? (
+            // SECURE STATE
             <div className="flex flex-col h-full items-center justify-center text-emerald-500 mt-10 md:mt-0">
               <div className="bg-emerald-500/10 p-4 rounded-full mb-4 border border-emerald-500/20">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
@@ -306,6 +333,7 @@ export default function Dashboard() {
               <p className="text-xs md:text-sm text-emerald-500/70 mt-2 text-center px-4">No unmitigated threat actors detected.</p>
             </div>
           ) : (
+            // VULNERABLE STATE
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 transition-all duration-500 pb-10">
               {filteredActors.map((actor: any) => (
                 <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-xl shadow-sm">
@@ -319,7 +347,6 @@ export default function Dashboard() {
                     </span>
                   </div>
                   
-                  {/* Granular Risk Scoring Bar */}
                   <div className="mb-4 md:mb-5 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
                     <div className="flex justify-between text-[10px] md:text-xs mb-2 font-medium text-slate-400">
                       <span>Mitigation Status</span>
@@ -337,7 +364,6 @@ export default function Dashboard() {
                     {cleanDescription(actor.description)}
                   </p>
                   
-                  {/* Expandable Exposed Vectors List */}
                   {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
                     <details className="mt-4 md:mt-5 group border-t border-slate-800/60 pt-3 md:pt-4">
                       <summary className="text-[10px] md:text-sm font-medium text-blue-400 cursor-pointer list-none flex items-center hover:text-blue-300 transition-colors w-fit">
@@ -371,15 +397,15 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      
       {/* RIGHT SLIDE-OUT PANEL: Emerging Intel Feed */}
-      {/* Overlay to close the drawer when clicking outside */}
       {isIntelFeedOpen && (
         <div 
-          className="fixed inset-0 z-40 print:hidden"
+          className="fixed inset-0 z-40"
           onClick={() => setIsIntelFeedOpen(false)}
         />
       )}
-      <div className={`fixed inset-y-0 right-0 z-50 w-80 bg-slate-900 border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out ${isIntelFeedOpen ? "translate-x-0" : "translate-x-full"} print:hidden flex flex-col`}>
+      <div className={`fixed inset-y-0 right-0 z-50 w-80 bg-slate-900 border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out ${isIntelFeedOpen ? "translate-x-0" : "translate-x-full"} flex flex-col`}>
         <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
           <div>
             <h2 className="text-lg font-bold text-emerald-400 tracking-tight flex items-center gap-2">
@@ -395,7 +421,6 @@ export default function Dashboard() {
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {processedEmergingVectors.map((vec) => {
-            // Strip markdown links for a cleaner read, but keep the full length for the details panel
             const fullDescription = vec.description 
               ? vec.description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') 
               : "No detailed description available in STIX data.";
@@ -410,12 +435,10 @@ export default function Dashboard() {
                 </div>
                 <p className="text-sm font-bold text-slate-200 leading-snug mb-3">{vec.name}</p>
                 
-                {/* Modal Trigger Button */}
                 <button 
                   onClick={() => setSelectedVector(vec)}
                   className="mt-2 mb-3 text-[10px] font-medium text-emerald-400 flex items-center hover:text-emerald-300 transition-colors bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 rounded border border-emerald-500/30 w-fit"
                 >
-                  {/* Eye Icon */}
                   <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                   Read Vector Details
                 </button>
@@ -439,19 +462,17 @@ export default function Dashboard() {
           })}
         </div>
       </div>
+      
       {/* --- VECTOR DETAILS MODAL --- */}
       {selectedVector && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 print:hidden">
-          {/* Blurred Backdrop */}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
           <div 
             className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
             onClick={() => setSelectedVector(null)}
           />
           
-          {/* Modal Container */}
           <div className="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
             
-            {/* Modal Header */}
             <div className="p-4 md:p-6 border-b border-slate-800 flex justify-between items-start bg-slate-950/50">
               <div className="pr-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -474,7 +495,6 @@ export default function Dashboard() {
               </button>
             </div>
             
-            {/* Modal Body */}
             <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar bg-slate-900 text-sm">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
@@ -505,7 +525,6 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* Modal Footer */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex justify-end">
                <button 
                 onClick={() => setSelectedVector(null)}
