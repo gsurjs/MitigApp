@@ -13,6 +13,8 @@ export default function Dashboard() {
   const [mitigations, setMitigations] = useState<any[]>([]);
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [exposedActors, setExposedActors] = useState<any[]>([]);
+  const [emergingVectors, setEmergingVectors] = useState<any[]>([]);
+  const [isIntelFeedOpen, setIsIntelFeedOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [actorSearch, setActorSearch] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -35,6 +37,11 @@ export default function Dashboard() {
     fetch(`${API_BASE_URL}/api/mitigations`)
       .then((res) => res.json())
       .then((data) => setMitigations(data));
+
+    // Emerging Vectors fetch
+    fetch(`${API_BASE_URL}/api/emerging-vectors`)
+      .then((res) => res.json())
+      .then((data) => setEmergingVectors(data));
   }, []);
 
   useEffect(() => {
