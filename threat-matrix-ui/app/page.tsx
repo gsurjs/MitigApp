@@ -366,9 +366,27 @@ export default function Dashboard() {
                     </p>
                   </div>
 
-                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                    {cleanDescription(actor.description)}
-                  </p>
+                  <div className="text-xs md:text-sm text-slate-400 leading-relaxed">
+                    {(() => {
+                      const fullDesc = cleanDescription(actor.description);
+                      const isExpanded = expandedActors.includes(actor.id);
+                      const needsExpansion = fullDesc.length > 150;
+                      
+                      return (
+                        <>
+                          {isExpanded || !needsExpansion ? fullDesc : `${fullDesc.substring(0, 150)}...`}
+                          {needsExpansion && (
+                            <button 
+                              onClick={() => toggleActorDescription(actor.id)}
+                              className="text-blue-400 hover:text-blue-300 ml-1.5 font-semibold transition-colors focus:outline-none"
+                            >
+                              {isExpanded ? "Show less" : "Read more"}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                   
                   {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
                     <details className="mt-4 md:mt-5 group border-t border-slate-800/60 pt-3 md:pt-4">
