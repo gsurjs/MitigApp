@@ -439,6 +439,85 @@ export default function Dashboard() {
           })}
         </div>
       </div>
+      {/* --- VECTOR DETAILS MODAL --- */}
+      {selectedVector && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 print:hidden">
+          {/* Blurred Backdrop */}
+          <div 
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+            onClick={() => setSelectedVector(null)}
+          />
+          
+          {/* Modal Container */}
+          <div className="relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="p-4 md:p-6 border-b border-slate-800 flex justify-between items-start bg-slate-950/50">
+              <div className="pr-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                    {selectedVector.mitre_id}
+                  </span>
+                  <span className="text-[10px] font-medium text-emerald-500/80 border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    Discovered: {new Date(selectedVector.created).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+                <h3 className="text-lg md:text-2xl font-bold text-slate-200 tracking-tight leading-tight">
+                  {selectedVector.name}
+                </h3>
+              </div>
+              <button 
+                className="text-slate-400 hover:text-rose-400 p-1.5 bg-slate-800 hover:bg-slate-800/80 rounded-md transition-colors border border-slate-700 hover:border-rose-900/50 flex-shrink-0"
+                onClick={() => setSelectedVector(null)}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar bg-slate-900 text-sm">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                MITRE ATT&CK Description
+              </h4>
+              <div className="text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-950/50 p-4 rounded-lg border border-slate-800/80">
+                {selectedVector.description 
+                  ? selectedVector.description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') 
+                  : "No detailed description available in STIX data."}
+              </div>
+
+              <div className="mt-6">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                  Targeted Industry Sectors
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedVector.sectors.length > 0 ? (
+                    selectedVector.sectors.map((sec: string) => (
+                      <span key={sec} className="text-[11px] md:text-xs font-medium tracking-wide bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-md shadow-sm">
+                        {sec}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] md:text-xs text-slate-400 border border-slate-700 bg-slate-800 px-2.5 py-1 rounded-md shadow-sm">Sector Agnostic</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex justify-end">
+               <button 
+                onClick={() => setSelectedVector(null)}
+                className="px-5 py-2 text-sm font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg transition-colors shadow-sm"
+              >
+                Close Details
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
     </main>
   );
 }
