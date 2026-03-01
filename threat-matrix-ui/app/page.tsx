@@ -55,9 +55,9 @@ export default function Dashboard() {
       fetch(`${API_BASE_URL}/api/telemetry/active`).then(res => res.json())
     ])
     .then(([mitigationsData, vectorsData, telemetryData]) => {
-      setMitigations(mitigationsData);
-      setEmergingVectors(vectorsData);
-      setActiveTelemetry(telemetryData || []);
+      setMitigations(Array.isArray(mitigationsData) ? mitigationsData : []);
+      setEmergingVectors(Array.isArray(vectorsData) ? vectorsData : []);
+      setActiveTelemetry(Array.isArray(telemetryData) ? telemetryData : []);
       setIsInitialLoading(false);
     })
     .catch(err => {
@@ -92,17 +92,54 @@ export default function Dashboard() {
     );
   };
 
-  // Executive Demo Simulation (Writes to Supabase)
+  // Sector-Specific Executive Demo Simulation (Writes to Supabase)
   const runSimulation = async () => {
-    const logs = [
-      { source: "IIS Webserver", log_message: "ALERT: DDoS attempt detected. Req/sec > 10000 from IP 192.168.1.5" },
-      { source: "Email Gateway", log_message: "CRITICAL: 47 phishing attachments detected and bypassed filter." },
-      { source: "WAF Proxy", log_message: "ALERT: SQL Injection payload detected in login form: ' OR 1=1--" },
-      { source: "Endpoint AV", log_message: "WARNING: Malicious Command and Scripting Interpreter bypass detected via PowerShell." }
-    ];
+    // 1. Define custom, highly realistic attack logs for each sector
+    const simulationScenarios: Record<string, any[]> = {
+      "Financial / Banking": [
+        { source: "SWIFT Gateway", log_message: "CRITICAL: Unauthorized SWIFT transaction attempt blocked. Banking trojan suspected." },
+        { source: "WAF Proxy", log_message: "ALERT: SQL Injection payload detected targeting customer database: ' OR 1=1--" },
+        { source: "ATM Network", log_message: "WARNING: ATM jackpotting malware signature detected on Segment B." },
+        { source: "Endpoint AV", log_message: "ALERT: Credential dumping tool (mimikatz) blocked on teller workstation." }
+      ],
+      "Healthcare / Medical": [
+        { source: "Medical IoT VLAN", log_message: "ALERT: Unauthorized access attempt on MRI machine interface." },
+        { source: "Email Gateway", log_message: "CRITICAL: 120 phishing emails targeting nursing staff bypassed filter." },
+        { source: "File Server", log_message: "WARNING: Massive file encryption detected. Ransomware behavior targeting EHR records." },
+        { source: "Endpoint AV", log_message: "ALERT: Suspicious powershell execution bypassing policy on reception PC." }
+      ],
+      "Energy / ICS": [
+        { source: "SCADA Firewall", log_message: "CRITICAL: Unauthorized Modbus protocol manipulation detected." },
+        { source: "Engineering Workstation", log_message: "ALERT: Ransomware encrypting project files." },
+        { source: "VPN Gateway", log_message: "WARNING: Brute force login attempt on industrial VPN portal." },
+        { source: "Network Sensor", log_message: "ALERT: Suspicious network service discovery scan (nmap) on ICS segment." }
+      ],
+      "Government / Diplomatic": [
+        { source: "Email Gateway", log_message: "ALERT: Spearphishing campaign detected from known state-sponsored actor." },
+        { source: "Domain Controller", log_message: "WARNING: Multiple failed logins. Brute force credential access detected." },
+        { source: "Endpoint AV", log_message: "CRITICAL: Mimikatz credential dumping detected on administrator endpoint." },
+        { source: "Network IDS", log_message: "ALERT: Suspicious data exfiltration over encrypted tunnel." }
+      ],
+      "Retail / Hospitality": [
+        { source: "POS Network", log_message: "CRITICAL: Point-of-Sale memory scraping malware detected." },
+        { source: "Web Frontend", log_message: "ALERT: DDoS attempt detected. Req/sec > 10000. Rate limit exceeded." },
+        { source: "Database", log_message: "WARNING: SQL Injection attempt targeting customer credit card tables." },
+        { source: "Guest WiFi", log_message: "ALERT: Man-in-the-Middle (MitM) spoofing detected on guest network." }
+      ],
+      // The default payload used if "All Sectors" or an unmapped sector is selected
+      "Default": [
+        { source: "IIS Webserver", log_message: "ALERT: DDoS attempt detected. Req/sec > 10000 from IP 192.168.1.5" },
+        { source: "Email Gateway", log_message: "CRITICAL: 47 phishing attachments detected and bypassed filter." },
+        { source: "WAF Proxy", log_message: "ALERT: SQL Injection payload detected in login form: ' OR 1=1--" },
+        { source: "Endpoint AV", log_message: "WARNING: Malicious Command and Scripting Interpreter bypass detected via PowerShell." }
+      ]
+    };
 
-    // Fire logs to the backend
-    for (const log of logs) {
+    // 2. Select the logs based on the currently selected dropdown filter
+    const logsToFire = simulationScenarios[sectorFilter] || simulationScenarios["Default"];
+
+    // 3. Fire the tailored logs to the backend
+    for (const log of logsToFire) {
       await fetch(`${API_BASE_URL}/api/telemetry/ingest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -110,10 +147,10 @@ export default function Dashboard() {
       });
     }
     
-    // Refresh the UI with the newly saved database events
+    // 4. Refresh the UI with the newly saved database events safely
     const res = await fetch(`${API_BASE_URL}/api/telemetry/active`);
     const data = await res.json();
-    setActiveTelemetry(data || []);
+    setActiveTelemetry(Array.isArray(data) ? data : []);
   };
 
   // Reset function (Now clears Telemetry from DB)
