@@ -50,6 +50,10 @@ def get_mitigations():
 class MitigationRequest(BaseModel):
     mitigated_ids: List[str]
 
+class LogPayload(BaseModel):
+    source: str
+    log_message: str
+
 # The Core Analysis Endpoint
 @app.post("/api/analyze")
 def analyze_risk(request: MitigationRequest):
@@ -193,6 +197,93 @@ def get_emerging_vectors():
         })
 
     return results
+
+# --- TELEMETRY & REASONING ENGINE ---
+
+# Dictionary mapping MITRE IDs to lists of detection keywords/regex strings
+DETECTION_RULES = {
+    "T1498": ["rate limit exceeded", "req/sec >", "ddos", "traffic spike", "flood"], # Network Denial of Service
+    "T1566": ["malicious attachment", "phishing", "suspicious email", "macro detected"], # Phishing
+    "T1190": ["sql injection", "1=1", "union select", "path traversal", "../", "xss"], # Exploit Public-Facing App
+    "T1059": ["suspicious powershell", "bypass execution policy", "hidden window", "cmd.exe /c"], # Command/Scripting Interpreter
+    "T1078": ["failed login", "brute force", "invalid credentials", "multiple login attempts"], # Valid Accounts
+    "T1003": ["lsass", "mimikatz", "credential dumping", "memory dump"], # OS Credential Dumping
+    "T1486": ["ransomware", "encrypt", "shadow copies deleted", "vssadmin delete shadows"], # Data Encrypted for Impact
+    "T1105": ["wget", "curl", "invoke-webrequest", "download payload"], # Ingress Tool Transfer
+    "T1046": ["port scan", "nmap", "sweeping", "discovery scan"], # Network Service Discovery
+    "T1543": ["new service created", "systemd modified", "init script altered"] # Create or Modify System Process
+}
+
+# --- SCALABLE REASONING ENGINE ---
+
+# 1. Global Cache to hold all 600+ MITRE Techniques in memory
+mitre_technique_cache = []
+
+def get_all_mitre_techniques():
+    """Loads all techniques from the DB once, preventing API spam on high log volume."""
+    global mitre_technique_cache
+    if not mitre_technique_cache:
+        # Uses your existing paginator to safely grab the entire MITRE catalog!
+        mitre_technique_cache = fetch_entire_table("techniques", "id, mitre_id, name")
+    return mitre_technique_cache
+
+# 2. Slang Dictionary: Translates IT shorthand into official MITRE IDs
+SLANG_OVERRIDES = {
+    "ddos": "T1498",
+    "sql injection": "T1190",
+    "phishing": "T1566",
+    "ransomware": "T1486",
+    "mimikatz": "T1003",
+    "brute force": "T1078"
+}
+
+@app.post("/api/telemetry/ingest")
+def ingest_log(payload: LogPayload):
+    """
+    Receives logs and maps them dynamically using the entire MITRE database.
+    """
+    log_lower = payload.log_message.lower()
+    detected_tech = None
+
+    # Step A: Check for common IT Slang / Acronyms first
+    for slang, mitre_id in SLANG_OVERRIDES.items():
+        if slang in log_lower:
+            detected_tech = next((t for t in get_all_mitre_techniques() if t["mitre_id"] == mitre_id), None)
+            break
+
+    # Step B: Full Framework Scan (Checks against all 600+ official MITRE names)
+    if not detected_tech:
+        for tech in get_all_mitre_techniques():
+            # e.g., if the log contains the exact phrase "Valid Accounts" or "Spearphishing"
+            if tech["name"].lower() in log_lower:
+                detected_tech = tech
+                break
+            
+    if detected_tech:
+        # Save the active hit directly using the cached UUID
+        supabase.table("telemetry_events").insert({
+            "source": payload.source,
+            "mitre_id": detected_tech["mitre_id"],
+            "technique_id": detected_tech["id"],
+            "raw_log": payload.log_message
+        }).execute()
+        
+        return {"status": "Threat detected and mapped", "mitre_id": detected_tech["mitre_id"]}
+            
+    return {"status": "Log ingested, no known threats detected"}
+
+@app.get("/api/telemetry/active")
+def get_active_telemetry():
+    """Fetches recent telemetry events from Supabase."""
+    response = supabase.table("telemetry_events").select("*").order("timestamp", desc=True).limit(50).execute()
+    return response.data
+
+@app.post("/api/telemetry/clear")
+def clear_telemetry():
+    """Clears the telemetry table to reset the executive demo."""
+    # Deletes all rows where mitre_id is not empty
+    supabase.table("telemetry_events").delete().neq("mitre_id", "0").execute()
+    return {"status": "cleared"}
 
 # middleware for CORS
 app.add_middleware(

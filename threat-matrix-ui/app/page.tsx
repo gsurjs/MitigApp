@@ -26,6 +26,8 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [expandedActors, setExpandedActors] = useState<string[]>([]);
 
+  const [activeTelemetry, setActiveTelemetry] = useState<any[]>([]);
+
   const toggleActorDescription = (id: string) => {
     setExpandedActors((prev) => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
@@ -45,15 +47,17 @@ export default function Dashboard() {
     { label: "Technology / Telecom", keywords: ["technology", "telecom", "software", "it provider"] },
   ];
 
-  // 1. Initial Data Load (Mitigations & Emerging Vectors)
+  // 1. Initial Data Load (Mitigations, Vectors & Telemetry)
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE_URL}/api/mitigations`).then(res => res.json()),
-      fetch(`${API_BASE_URL}/api/emerging-vectors`).then(res => res.json())
+      fetch(`${API_BASE_URL}/api/emerging-vectors`).then(res => res.json()),
+      fetch(`${API_BASE_URL}/api/telemetry/active`).then(res => res.json())
     ])
-    .then(([mitigationsData, vectorsData]) => {
+    .then(([mitigationsData, vectorsData, telemetryData]) => {
       setMitigations(mitigationsData);
       setEmergingVectors(vectorsData);
+      setActiveTelemetry(telemetryData || []);
       setIsInitialLoading(false);
     })
     .catch(err => {
@@ -88,12 +92,43 @@ export default function Dashboard() {
     );
   };
 
-  // Reset function
-  const handleReset = () => {
+  // Executive Demo Simulation (Writes to Supabase)
+  const runSimulation = async () => {
+    const logs = [
+      { source: "IIS Webserver", log_message: "ALERT: DDoS attempt detected. Req/sec > 10000 from IP 192.168.1.5" },
+      { source: "Email Gateway", log_message: "CRITICAL: 47 phishing attachments detected and bypassed filter." },
+      { source: "WAF Proxy", log_message: "ALERT: SQL Injection payload detected in login form: ' OR 1=1--" },
+      { source: "Endpoint AV", log_message: "WARNING: Malicious Command and Scripting Interpreter bypass detected via PowerShell." }
+    ];
+
+    // Fire logs to the backend
+    for (const log of logs) {
+      await fetch(`${API_BASE_URL}/api/telemetry/ingest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(log)
+      });
+    }
+    
+    // Refresh the UI with the newly saved database events
+    const res = await fetch(`${API_BASE_URL}/api/telemetry/active`);
+    const data = await res.json();
+    setActiveTelemetry(data || []);
+  };
+
+  // Reset function (Now clears Telemetry from DB)
+  const handleReset = async () => {
     setCheckedIds([]);
     setSearchTerm("");
     setActorSearch("");
     setSectorFilter("All Sectors");
+    
+    try {
+      await fetch(`${API_BASE_URL}/api/telemetry/clear`, { method: "POST" });
+      setActiveTelemetry([]);
+    } catch (err) {
+      console.error("Failed to clear telemetry:", err);
+    }
   };
 
   const filteredActors = exposedActors.filter((actor) => {
@@ -133,7 +168,7 @@ export default function Dashboard() {
       return a.mitre_id.localeCompare(b.mitre_id);
     });
 
-  const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "" || sectorFilter !== "All Sectors";
+  const isBoardActive = checkedIds.length > 0 || searchTerm !== "" || actorSearch !== "" || sectorFilter !== "All Sectors" || activeTelemetry.length > 0;
   
   const processedEmergingVectors = emergingVectors.map(vector => {
     const affectedSectors = new Set<string>();
@@ -273,18 +308,37 @@ export default function Dashboard() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 Live Intel Feed
               </button>
+              
+              {/* Simulate Attack Button (Desktop) */}
+              <button 
+                onClick={runSimulation}
+                className="hidden sm:flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Simulate Attack
+              </button>
             </div>
           </div>
 
           <div className="flex sm:block justify-between items-end sm:text-right border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
-            {/* Live Intel Feed Button (Mobile) */}
-            <button 
-              onClick={() => setIsIntelFeedOpen(true)}
-              className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors mb-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-              Live Intel
-            </button>
+            {/* Mobile Buttons */}
+            <div className="sm:hidden flex flex-col gap-2 mb-2">
+              <button 
+                onClick={() => setIsIntelFeedOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Live Intel
+              </button>
+
+              <button 
+                onClick={runSimulation}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Simulate Attack
+              </button>
+            </div>
             
             <div className="text-right">
               <p className="text-sm text-slate-400 font-medium mb-1">Exposed Actors</p>
@@ -320,7 +374,6 @@ export default function Dashboard() {
         {/* Threat Actor Feed */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {isInitialLoading || isAnalyzing ? (
-            // LOADING STATE
             <div className="flex flex-col h-full items-center justify-center text-blue-500 mt-10 md:mt-0">
               <svg className="animate-spin w-10 h-10 mb-4 text-blue-500/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -330,7 +383,6 @@ export default function Dashboard() {
               <p className="text-xs text-slate-500 mt-2">Cross-referencing active mitigations</p>
             </div>
           ) : filteredActors.length === 0 ? (
-            // SECURE STATE
             <div className="flex flex-col h-full items-center justify-center text-emerald-500 mt-10 md:mt-0">
               <div className="bg-emerald-500/10 p-4 rounded-full mb-4 border border-emerald-500/20">
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
@@ -339,7 +391,6 @@ export default function Dashboard() {
               <p className="text-xs md:text-sm text-emerald-500/70 mt-2 text-center px-4">No unmitigated threat actors detected.</p>
             </div>
           ) : (
-            // VULNERABLE STATE
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 transition-all duration-500 pb-10">
               {filteredActors.map((actor: any) => (
                 <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-xl shadow-sm">
@@ -366,6 +417,7 @@ export default function Dashboard() {
                     </p>
                   </div>
 
+                  {/* Dynamic Read More / Show Less */}
                   <div className="text-xs md:text-sm text-slate-400 leading-relaxed">
                     {(() => {
                       const fullDesc = cleanDescription(actor.description);
@@ -396,12 +448,33 @@ export default function Dashboard() {
                       </summary>
                       <div className="mt-3 max-h-40 md:max-h-48 overflow-y-auto pr-1 md:pr-2 custom-scrollbar">
                         <ul className="space-y-1.5 md:space-y-2">
-                          {actor.exposed_techniques.map((tech: any) => (
-                            <li key={tech.mitre_id} className="text-[10px] md:text-xs flex justify-between items-center p-2 md:p-2.5 bg-slate-950/50 rounded-md border border-slate-800/80 gap-2">
-                              <span className="font-medium text-slate-300 truncate">{tech.name}</span>
-                              <span className="font-mono text-slate-500 text-[8px] md:text-[10px] flex-shrink-0">{tech.mitre_id}</span>
-                            </li>
-                          ))}
+                          {actor.exposed_techniques.map((tech: any) => {
+                            
+                            // Check if this vector matches our live database telemetry
+                            const activeHits = activeTelemetry.filter(log => log.mitre_id === tech.mitre_id);
+                            const isActiveThreat = activeHits.length > 0;
+
+                            return (
+                              <li key={tech.mitre_id} className={`text-[10px] md:text-xs flex flex-col p-2 md:p-2.5 rounded-md border gap-1 transition-colors ${isActiveThreat ? 'bg-rose-950/40 border-rose-500/50' : 'bg-slate-950/50 border-slate-800/80'}`}>
+                                <div className="flex justify-between items-center">
+                                  <span className={`font-medium truncate ${isActiveThreat ? 'text-rose-400' : 'text-slate-300'}`}>
+                                    {isActiveThreat && <span className="animate-pulse mr-1.5 inline-block w-1.5 h-1.5 bg-rose-500 rounded-full"></span>}
+                                    {tech.name}
+                                  </span>
+                                  <span className={`font-mono text-[8px] md:text-[10px] flex-shrink-0 ${isActiveThreat ? 'text-rose-500/70' : 'text-slate-500'}`}>
+                                    {tech.mitre_id}
+                                  </span>
+                                </div>
+                                
+                                {/* Show the actual log reasoning if it's an active threat */}
+                                {isActiveThreat && (
+                                  <div className="mt-1 pt-1 border-t border-rose-900/50 text-[9px] text-rose-300/80 font-mono">
+                                    <span className="font-bold">ACTIVE TELEMETRY ({activeHits[0].source}):</span> {activeHits[0].raw_log}
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     </details>
@@ -445,9 +518,7 @@ export default function Dashboard() {
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {processedEmergingVectors.map((vec) => {
-            const fullDescription = vec.description 
-              ? vec.description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') 
-              : "No detailed description available in STIX data.";
+            const fullDescription = cleanDescription(vec.description);
 
             return (
               <div key={vec.mitre_id} className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl hover:border-emerald-500/30 transition-colors shadow-sm">
@@ -525,9 +596,7 @@ export default function Dashboard() {
                 MITRE ATT&CK Description
               </h4>
               <div className="text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-950/50 p-4 rounded-lg border border-slate-800/80">
-                {selectedVector.description 
-                  ? selectedVector.description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') 
-                  : "No detailed description available in STIX data."}
+                {cleanDescription(selectedVector.description)}
               </div>
 
               <div className="mt-6">
