@@ -91,7 +91,6 @@ export default function Dashboard() {
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
-
   // Sector-Specific Executive Demo Simulation (Writes to Supabase)
   const runSimulation = async () => {
     // 1. Define custom, highly realistic attack logs for each sector
@@ -135,23 +134,37 @@ export default function Dashboard() {
       ]
     };
 
-    // 2. Select the logs based on the currently selected dropdown filter
     const logsToFire = simulationScenarios[sectorFilter] || simulationScenarios["Default"];
 
-    // 3. Fire the tailored logs to the backend
-    for (const log of logsToFire) {
-      await fetch(`${API_BASE_URL}/api/telemetry/ingest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(log)
-      });
+    try {
+      // 3. Fire the tailored logs to the backend
+      for (const log of logsToFire) {
+        const ingestRes = await fetch(`${API_BASE_URL}/api/telemetry/ingest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(log)
+        });
+        
+        // NEW ALARM: If Railway returns a 404, yell at us!
+        if (!ingestRes.ok) {
+           alert(`Backend Error ${ingestRes.status}: Railway cannot find the /ingest endpoint! Are you sure your main.py file was successfully deployed to Railway?`);
+           return;
+        }
+      }
+      
+      // 4. Refresh the UI with the newly saved database events
+      const res = await fetch(`${API_BASE_URL}/api/telemetry/active`);
+      if (!res.ok) throw new Error("Fetch active telemetry failed");
+      
+      const data = await res.json();
+      setActiveTelemetry(Array.isArray(data) ? data : []);
+      
+    } catch (error) {
+      alert("Network Error: Could not reach the API. Check if your NEXT_PUBLIC_API_URL is correct in Vercel.");
+      console.error(error);
     }
-    
-    // 4. Refresh the UI with the newly saved database events safely
-    const res = await fetch(`${API_BASE_URL}/api/telemetry/active`);
-    const data = await res.json();
-    setActiveTelemetry(Array.isArray(data) ? data : []);
   };
+  
 
   // Reset function (Now clears Telemetry from DB)
   const handleReset = async () => {
