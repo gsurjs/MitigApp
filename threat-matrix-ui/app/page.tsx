@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 // Helper function to strip Markdown links from MITRE's descriptions
 const cleanDescription = (text: string) => {
   if (!text) return "No description available in STIX data.";
-  // Converts [TeamTNT](https://...) to just "TeamTNT"
   return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 };
 
@@ -47,7 +46,7 @@ export default function Dashboard() {
     { label: "Technology / Telecom", keywords: ["technology", "telecom", "software", "it provider"] },
   ];
 
-  // 1. Initial Data Load (Mitigations, Vectors & Telemetry)
+  // 1. Initial Data Load
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE_URL}/api/mitigations`).then(res => res.json()),
@@ -66,7 +65,7 @@ export default function Dashboard() {
     });
   }, []);
 
-  // 2. Dynamic Risk Analysis Load (Runs when checkboxes change)
+  // 2. Dynamic Risk Analysis Load
   useEffect(() => {
     setIsAnalyzing(true);
     fetch(`${API_BASE_URL}/api/analyze`, {
@@ -91,9 +90,9 @@ export default function Dashboard() {
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
-  // Sector-Specific Executive Demo Simulation (Writes to Supabase)
+
+  // Sector-Specific Executive Demo Simulation
   const runSimulation = async () => {
-    // 1. Define custom, highly realistic attack logs for each sector
     const simulationScenarios: Record<string, any[]> = {
       "Financial / Banking": [
         { source: "SWIFT Gateway", log_message: "CRITICAL: Unauthorized SWIFT transaction attempt blocked. Banking trojan suspected." },
@@ -125,7 +124,6 @@ export default function Dashboard() {
         { source: "Database", log_message: "WARNING: SQL Injection attempt targeting customer credit card tables." },
         { source: "Guest WiFi", log_message: "ALERT: Man-in-the-Middle (MitM) spoofing detected on guest network." }
       ],
-      // The default payload used if "All Sectors" or an unmapped sector is selected
       "Default": [
         { source: "IIS Webserver", log_message: "ALERT: DDoS attempt detected. Req/sec > 10000 from IP 192.168.1.5" },
         { source: "Email Gateway", log_message: "CRITICAL: 47 phishing attachments detected and bypassed filter." },
@@ -137,7 +135,6 @@ export default function Dashboard() {
     const logsToFire = simulationScenarios[sectorFilter] || simulationScenarios["Default"];
 
     try {
-      // 3. Fire the tailored logs to the backend
       for (const log of logsToFire) {
         const ingestRes = await fetch(`${API_BASE_URL}/api/telemetry/ingest`, {
           method: "POST",
@@ -145,14 +142,12 @@ export default function Dashboard() {
           body: JSON.stringify(log)
         });
         
-        // NEW ALARM: If Railway returns a 404, yell at us!
         if (!ingestRes.ok) {
-           alert(`Backend Error ${ingestRes.status}: Railway cannot find the /ingest endpoint! Are you sure your main.py file was successfully deployed to Railway?`);
+           alert(`Backend Error ${ingestRes.status}: Railway cannot find the /ingest endpoint! Your main.py file has not successfully deployed to Railway yet.`);
            return;
         }
       }
       
-      // 4. Refresh the UI with the newly saved database events
       const res = await fetch(`${API_BASE_URL}/api/telemetry/active`);
       if (!res.ok) throw new Error("Fetch active telemetry failed");
       
@@ -160,13 +155,11 @@ export default function Dashboard() {
       setActiveTelemetry(Array.isArray(data) ? data : []);
       
     } catch (error) {
-      alert("Network Error: Could not reach the API. Check if your NEXT_PUBLIC_API_URL is correct in Vercel.");
+      alert("Network Error: Could not reach the API. Check your backend server status.");
       console.error(error);
     }
   };
-  
 
-  // Reset function (Now clears Telemetry from DB)
   const handleReset = async () => {
     setCheckedIds([]);
     setSearchTerm("");
@@ -182,7 +175,6 @@ export default function Dashboard() {
   };
 
   const filteredActors = exposedActors.filter((actor) => {
-    // 1. Text Search Logic
     const searchLower = actorSearch.toLowerCase();
     const matchesName = actor.name.toLowerCase().includes(searchLower);
     const matchesId = actor.mitre_id.toLowerCase().includes(searchLower);
@@ -191,7 +183,6 @@ export default function Dashboard() {
       : false;
     const matchesSearch = matchesName || matchesId || matchesAlias;
 
-    // 2. Industry Sector Logic
     let matchesSector = true;
     if (sectorFilter !== "All Sectors") {
       const selectedSector = SECTORS.find(s => s.label === sectorFilter);
@@ -236,7 +227,6 @@ export default function Dashboard() {
   return (
     <main className="flex h-screen bg-slate-900 text-slate-200 font-sans overflow-hidden selection:bg-blue-500/30 relative">
       
-      {/* Mobile Overlay Backdrop */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 md:hidden transition-opacity"
@@ -350,7 +340,6 @@ export default function Dashboard() {
                 <svg className="w-3.5 h-3.5 absolute right-3 top-2.5 text-slate-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </div>
 
-              {/* Live Intel Feed Button (Desktop) */}
               <button 
                 onClick={() => setIsIntelFeedOpen(true)}
                 className="hidden sm:flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors cursor-pointer"
@@ -359,7 +348,6 @@ export default function Dashboard() {
                 Live Intel Feed
               </button>
               
-              {/* Simulate Attack Button (Desktop) */}
               <button 
                 onClick={runSimulation}
                 className="hidden sm:flex items-center gap-1.5 ml-2 px-3 py-1.5 text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-colors cursor-pointer"
@@ -371,7 +359,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex sm:block justify-between items-end sm:text-right border-t border-slate-800/50 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
-            {/* Mobile Buttons */}
             <div className="sm:hidden flex flex-col gap-2 mb-2">
               <button 
                 onClick={() => setIsIntelFeedOpen(true)}
@@ -442,104 +429,122 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 transition-all duration-500 pb-10">
-              {filteredActors.map((actor: any) => (
-                <div key={actor.mitre_id || actor.id} className="bg-slate-900 border border-slate-800 p-4 md:p-6 rounded-xl shadow-sm">
-                  
-                  <div className="flex justify-between items-start mb-4 md:mb-5">
-                    <h3 className="text-base md:text-lg font-bold text-rose-500 tracking-tight leading-tight pr-2">
-                      {actor.name}
-                    </h3>
-                    <span className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-md flex-shrink-0">
-                      {actor.mitre_id}
-                    </span>
-                  </div>
-                  
-                  <div className="mb-4 md:mb-5 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
-                    <div className="flex justify-between text-[10px] md:text-xs mb-2 font-medium text-slate-400">
-                      <span>Mitigation Status</span>
-                      <span className="text-emerald-400">{actor.mitigation_percent}% Protected</span>
-                    </div>
-                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${actor.mitigation_percent}%` }}></div>
-                    </div>
-                    <p className="text-[10px] md:text-xs text-rose-400 mt-2 text-right font-medium">
-                      {actor.exposed_vectors} / {actor.total_vectors} vectors exposed
-                    </p>
-                  </div>
+              {filteredActors.map((actor: any) => {
+                
+                // NEW: Calculate if this specific actor is actively exploiting the network
+                const hasActiveThreat = actor.exposed_techniques?.some((tech: any) => 
+                  activeTelemetry.some(log => tech.mitre_id === log.mitre_id || tech.mitre_id.startsWith(`${log.mitre_id}.`))
+                );
 
-                  {/* Dynamic Read More / Show Less */}
-                  <div className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                    {(() => {
-                      const fullDesc = cleanDescription(actor.description);
-                      const isExpanded = expandedActors.includes(actor.id);
-                      const needsExpansion = fullDesc.length > 150;
-                      
-                      return (
-                        <>
-                          {isExpanded || !needsExpansion ? fullDesc : `${fullDesc.substring(0, 150)}...`}
-                          {needsExpansion && (
-                            <button 
-                              onClick={() => toggleActorDescription(actor.id)}
-                              className="text-blue-400 hover:text-blue-300 ml-1.5 font-semibold transition-colors focus:outline-none"
-                            >
-                              {isExpanded ? "Show less" : "Read more"}
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                  
-                  {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
-                    <details className="mt-4 md:mt-5 group border-t border-slate-800/60 pt-3 md:pt-4">
-                      <summary className="text-[10px] md:text-sm font-medium text-blue-400 cursor-pointer list-none flex items-center hover:text-blue-300 transition-colors w-fit">
-                        <svg className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-1.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                        View {actor.exposed_vectors} exposed vectors
-                      </summary>
-                      <div className="mt-3 max-h-40 md:max-h-48 overflow-y-auto pr-1 md:pr-2 custom-scrollbar">
-                        <ul className="space-y-1.5 md:space-y-2">
-                          {actor.exposed_techniques.map((tech: any) => {
-                            
-                            // Check if this vector matches our live database telemetry
-                            const activeHits = activeTelemetry.filter(log => log.mitre_id === tech.mitre_id);
-                            const isActiveThreat = activeHits.length > 0;
-
-                            return (
-                              <li key={tech.mitre_id} className={`text-[10px] md:text-xs flex flex-col p-2 md:p-2.5 rounded-md border gap-1 transition-colors ${isActiveThreat ? 'bg-rose-950/40 border-rose-500/50' : 'bg-slate-950/50 border-slate-800/80'}`}>
-                                <div className="flex justify-between items-center">
-                                  <span className={`font-medium truncate ${isActiveThreat ? 'text-rose-400' : 'text-slate-300'}`}>
-                                    {isActiveThreat && <span className="animate-pulse mr-1.5 inline-block w-1.5 h-1.5 bg-rose-500 rounded-full"></span>}
-                                    {tech.name}
-                                  </span>
-                                  <span className={`font-mono text-[8px] md:text-[10px] flex-shrink-0 ${isActiveThreat ? 'text-rose-500/70' : 'text-slate-500'}`}>
-                                    {tech.mitre_id}
-                                  </span>
-                                </div>
-                                
-                                {/* Show the actual log reasoning if it's an active threat */}
-                                {isActiveThreat && (
-                                  <div className="mt-1 pt-1 border-t border-rose-900/50 text-[9px] text-rose-300/80 font-mono">
-                                    <span className="font-bold">ACTIVE TELEMETRY ({activeHits[0].source}):</span> {activeHits[0].raw_log}
-                                  </div>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
+                return (
+                  <div key={actor.mitre_id || actor.id} className={`p-4 md:p-6 rounded-xl shadow-sm transition-all duration-500 border ${hasActiveThreat ? 'bg-rose-950/20 border-rose-500/50 shadow-rose-900/20' : 'bg-slate-900 border-slate-800'}`}>
+                    
+                    {/* NEW: Active Threat Banner */}
+                    {hasActiveThreat && (
+                      <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                        </span>
+                        ACTIVE EXPLOITATION DETECTED
                       </div>
-                    </details>
-                  )}
+                    )}
 
-                  {actor.aliases && actor.aliases.length > 0 && (
-                    <div className="mt-4 md:mt-5 pt-3 md:pt-4 border-t border-slate-800/60">
-                      <p className="text-[10px] md:text-xs text-slate-400 leading-relaxed">
-                        <span className="font-semibold text-slate-300">Aliases: </span>
-                        {actor.aliases.join(', ')}
+                    <div className="flex justify-between items-start mb-4 md:mb-5">
+                      <h3 className={`text-base md:text-lg font-bold tracking-tight leading-tight pr-2 ${hasActiveThreat ? 'text-rose-400' : 'text-rose-500'}`}>
+                        {actor.name}
+                      </h3>
+                      <span className="text-[10px] md:text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 px-2 py-1 rounded-md flex-shrink-0">
+                        {actor.mitre_id}
+                      </span>
+                    </div>
+                    
+                    <div className="mb-4 md:mb-5 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
+                      <div className="flex justify-between text-[10px] md:text-xs mb-2 font-medium text-slate-400">
+                        <span>Mitigation Status</span>
+                        <span className="text-emerald-400">{actor.mitigation_percent}% Protected</span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${actor.mitigation_percent}%` }}></div>
+                      </div>
+                      <p className="text-[10px] md:text-xs text-rose-400 mt-2 text-right font-medium">
+                        {actor.exposed_vectors} / {actor.total_vectors} vectors exposed
                       </p>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div className="text-xs md:text-sm text-slate-400 leading-relaxed">
+                      {(() => {
+                        const fullDesc = cleanDescription(actor.description);
+                        const isExpanded = expandedActors.includes(actor.id);
+                        const needsExpansion = fullDesc.length > 150;
+                        
+                        return (
+                          <>
+                            {isExpanded || !needsExpansion ? fullDesc : `${fullDesc.substring(0, 150)}...`}
+                            {needsExpansion && (
+                              <button 
+                                onClick={() => toggleActorDescription(actor.id)}
+                                className="text-blue-400 hover:text-blue-300 ml-1.5 font-semibold transition-colors focus:outline-none"
+                              >
+                                {isExpanded ? "Show less" : "Read more"}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                    
+                    {/* NEW: Auto-open the details if there is an active threat */}
+                    {actor.exposed_techniques && actor.exposed_techniques.length > 0 && (
+                      <details className="mt-4 md:mt-5 group border-t border-slate-800/60 pt-3 md:pt-4" open={hasActiveThreat}>
+                        <summary className="text-[10px] md:text-sm font-medium text-blue-400 cursor-pointer list-none flex items-center hover:text-blue-300 transition-colors w-fit">
+                          <svg className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1 md:mr-1.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                          View {actor.exposed_vectors} exposed vectors
+                        </summary>
+                        <div className="mt-3 max-h-40 md:max-h-48 overflow-y-auto pr-1 md:pr-2 custom-scrollbar">
+                          <ul className="space-y-1.5 md:space-y-2">
+                            {actor.exposed_techniques.map((tech: any) => {
+                              
+                              // NEW: Match sub-techniques properly using .startsWith()
+                              const activeHits = activeTelemetry.filter(log => tech.mitre_id === log.mitre_id || tech.mitre_id.startsWith(`${log.mitre_id}.`));
+                              const isActiveThreat = activeHits.length > 0;
+
+                              return (
+                                <li key={tech.mitre_id} className={`text-[10px] md:text-xs flex flex-col p-2 md:p-2.5 rounded-md border gap-1 transition-colors ${isActiveThreat ? 'bg-rose-950/40 border-rose-500/50' : 'bg-slate-950/50 border-slate-800/80'}`}>
+                                  <div className="flex justify-between items-center">
+                                    <span className={`font-medium truncate ${isActiveThreat ? 'text-rose-400' : 'text-slate-300'}`}>
+                                      {isActiveThreat && <span className="animate-pulse mr-1.5 inline-block w-1.5 h-1.5 bg-rose-500 rounded-full"></span>}
+                                      {tech.name}
+                                    </span>
+                                    <span className={`font-mono text-[8px] md:text-[10px] flex-shrink-0 ${isActiveThreat ? 'text-rose-500/70' : 'text-slate-500'}`}>
+                                      {tech.mitre_id}
+                                    </span>
+                                  </div>
+                                  
+                                  {isActiveThreat && (
+                                    <div className="mt-1 pt-1 border-t border-rose-900/50 text-[9px] text-rose-300/80 font-mono">
+                                      <span className="font-bold">ACTIVE TELEMETRY ({activeHits[0].source}):</span> {activeHits[0].raw_log}
+                                    </div>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      </details>
+                    )}
+
+                    {actor.aliases && actor.aliases.length > 0 && (
+                      <div className="mt-4 md:mt-5 pt-3 md:pt-4 border-t border-slate-800/60">
+                        <p className="text-[10px] md:text-xs text-slate-400 leading-relaxed">
+                          <span className="font-semibold text-slate-300">Aliases: </span>
+                          {actor.aliases.join(', ')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
